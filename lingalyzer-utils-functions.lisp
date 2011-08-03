@@ -2,7 +2,9 @@
 
 ;; low-level functions
 (defun file-string (path)
-  "Sucks up an entire file from PATH into a freshly-allocated string, returning two values: the string and the number of bytes read. (shamelessly stolen from Cliki)"
+  "Sucks up an entire file from PATH into a freshly-allocated string, returning
+two values: the string and the number of bytes read. (shamelessly stolen
+from Cliki)"
   
   (with-open-file (s path)
     (let* ((len (file-length s))
@@ -29,7 +31,8 @@
 (defun read-file (path)
   "Read file from disk. Returns list of strings."
   
-  (split-sequence:split-sequence #\Space (strip-text (file-string path)) :remove-empty-subseqs t))
+  (split-sequence:split-sequence #\Space (strip-text (file-string path))
+				 :remove-empty-subseqs t))
 
 
 ;; misc
@@ -45,7 +48,8 @@
 (defun read-metadata (path)
   "Read supplied metadata from file and return as alist."
 
-    (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
+    (with-open-file (metadata-file (concatenate 'string path ".meta")
+				   :direction :input)
       (read metadata-file)))
 
 (defun gen-doc-hash (metadata)
@@ -117,6 +121,7 @@
     (if terms-in
 	(gen-terms-ref
 	 (cdr terms-in)
+
 	 (append terms-ref
 		 (cons (gethash (car terms-in) terms-ht) nil))
 	 terms-ht)
@@ -130,6 +135,7 @@
 	(progn
 	  (setf (gethash doc-hash docs-ht)
 		(make-doc :name (cdr (nth 0 metadata))
+			  :ngrams (ngram:gen-n-grams (cdr (nth 0 metadata)))
 			  :author (get-author metdata authors-ht)
 			  :genre (cdr (nth 2 metadata))
 			  :version (cdr (nth 3 metadata))
@@ -149,7 +155,7 @@
 	(process-terms terms terms-ht)
 	(process-doc terms path terms-ht docs-ht)))
 
-(defun search-docs (name docs-ht)
-  "Check the document collection for a document matching the supplied name."
+(defun search-docs (name docs-ht &optional (threshold 0.65))
+  "Check the document collection for documents matching the supplied name."
 
-  
+  "maphash compare-n-grams if > threshold append to list, return"

@@ -1,9 +1,9 @@
 ;;
 ;; defpackage et. al. in use until I can get a hang on asdf
 ;;
-(load "/usr/local/src/cl/lingalyzer/defpackage.lisp")
-(load "/usr/local/src/cl/lingalyzer/lingalyzer-utils-structures.lisp")
-(load "/usr/local/src/cl/lingalyzer/lingalyzer-utils-functions.lisp")
+(load "/usr/local/src/lingalyzer/defpackage.lisp")
+(load "/usr/local/src/lingalyzer/lingalyzer-utils-structures.lisp")
+(load "/usr/local/src/lingalyzer/lingalyzer-utils-functions.lisp")
 
 (in-package :org.kjerkreit.lingalyzer)
 

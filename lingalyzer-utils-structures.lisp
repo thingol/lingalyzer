@@ -1,25 +1,29 @@
 (in-package :org.kjerkreit.lingalyzer.utils)
 
 (defstruct author
-  (name  "John Doe"  :type string :read-only t)
-  (b-day "000-00-00" :type string :read-only t)
-  (d-day "000-00-00" :type string :read-only t)
-  (docs  nil         :type list))
+  (name   "John Doe"  :type string :read-only t)
+  (ngrams nil         :type list   :read-only t)
+  (b-day  "000-00-00" :type string :read-only t)
+  (d-day  "000-00-00" :type string :read-only t)
+  (docs   nil         :type list))
 
 (defstruct term
-  (form  "" :type string)
-  (count 0  :type integer))
+  (form   ""  :type string :read-only t)
+  (ngrams nil :type list :read-only t)
+  (count  0   :type integer))
 
 (defstruct copyist
   (name     "John Doe"  :type string :read-only t)
+  (ngrams   nil         :type list   :read-only t)
   (b-day    "000-00-00" :type string :read-only t)
   (d-day    "000-00-00" :type string :read-only t)
   (docs     nil         :type list)
   (employer ""          :type string :read-only t))
 
 (defstruct doc
-  (name          "A tale" :type string)
-  (name-hash     "-"      :type string)
+  (name          "A tale" :type string :read-only t)
+  (name-hash     "-"      :type string :read-only t)
+  (ngrams        nil      :type list   :read-only t)
   (author        nil      :type author)
   (genre         "-"      :type string)
   (version       0        :type integer)
@@ -31,6 +35,7 @@
 
 (defstruct translator
   (name     "John Doe"  :type string :read-only t)
+  (ngrams   nil         :type list   :read-only t)
   (b-day    "000-00-00" :type string :read-only t)
   (d-day    "000-00-00" :type string :read-only t)
   (docs     nil         :type list)

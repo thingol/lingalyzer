@@ -5,7 +5,7 @@
 
 (defpackage :org.kjerkreit.lingalyzer.utils
   (:nicknames "LL-UTILS")
-  (:use :common-lisp :split-sequence :sb-md5)
+  (:use :common-lisp :split-sequence :sb-md5 :org.kjerkreit.ngram)
   (:export add-file))
 
 ;; TODO
