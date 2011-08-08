@@ -35,32 +35,23 @@ from Cliki)"
 				 :remove-empty-subseqs t))
 
 
-;; misc
-;;(defun clean-text-to-file (doc)
-;;  "Saves a copy of the cleaned text to file."
-;;
-;;  (with-open-file (out (concatenate 'string (doc-org-path doc) ".clean")
-;;		       :direction :output :if-exists :supersede)
-;;    (pprint terms out)))
-
-
-
 (defun read-metadata (path)
   "Read supplied metadata from file and return as alist."
 
-    (with-open-file (metadata-file (concatenate 'string path ".meta")
-				   :direction :input)
+    (with-open-file (metadata-file
+		     (concatenate 'string path ".meta")
+		     :direction :input)
       (read metadata-file)))
 
-(defun gen-doc-hash (metadata)
+(defun gen-doc-hash (md)
   "Make an md5sum from meta data."
 
   (sb-md5:md5sum-string
-		    (format nil "~a.~a.~a.~a"
-			    (cdr (nth 0 metadata))
-			    (cdr (nth 1 metadata))
-			    (cdr (nth 3 metadata))
-			    (cdr (nth 4 metadata)))))
+   (concatenate 'string
+		(cdr (assoc 'author md))
+		(cdr (assoc 'genre md))
+		(cdr (assoc 'copied-by md))
+		(cdr (assoc 'name md)))))
 
 (defun has-doc-p (doc-hash docs-ht)
   "Compare meta data from two files to determine document equality."
@@ -70,92 +61,80 @@ from Cliki)"
 
 ;; First pass: check all terms, add if new
 (defun process-terms (terms terms-ht)
-  "Process terms. Add if not already in table, otherwise increase count by one."
+  "Process terms. Add if not already in table, otherwise increase count by one.
+Returns a list of references to the terms processed in the orderd received."
 
-  (defun add-term (term-m)
-    (setf (gethash term-m terms-ht) (make-term :form term-m :count 1)))
+  (flet ((get-term (term)
+	   (let ((th (gethash term terms-h)))
+	     (if th
+		 (progn (incf (term-count th)) th)
+		 (setf (gethash term terms-ht)
+			  (make-term :form term :count 1))))))
 
-  (defun inc-term (term-n)
-    (setf (term-count term-n) (1+ (term-count term-n))))
-
-  (defun rec (terms)
-    (if terms
-	(progn
-	  (let* ((term-m (car terms))
-		 (term-n (gethash term-m terms-ht)))
-	    (if term-n
-		(inc-term term-n)
-		(add-term term-m))
-	    (rec (cdr terms))))))
- 
-  (rec terms))
-
+    (do ((ts
+	  (cdr terms)
+	  (cdr ts))
+	 (processed-terms
+	  (list (get-term (car terms)))
+	  (append processed-terms (list (get-term (car ts))))))
+	 ((not ts) processed-terms))))
+  
 (defun get-author (metadata authors-ht)
   "Get the reference to the author's structure. Make it if we don't already have
  them."
 
-  (let* ((author-name (cdr (assoc 'author metadata))
-	 (author (gethash author-name authors-ht))))
+  (let* ((an (cdr (assoc 'author metadata))
+	 (author (gethash an authors-ht))))
     (if author
 	author
 	(progn
-	  (setf author (make-author :name author-name))
+	  (setf author (make-author :name an))
 	  author))))
 
 (defun get-copyist (metadata copyists-ht)
   "Get the reference to the copyist's structure. Make it if we don't already have
  them."
 
-  (let* ((copyist-name (cdr (assoc 'copied-by metadata))
-	 (copyist-name (gethash copyist-name copyists-ht))))
+  (let* ((cn (cdr (assoc 'copied-by metadata))
+	 (copyist (gethash cn copyists-ht))))
     (if copyist
-	copuist
+	copyist
 	(progn
-	  (setf copyist (make-copyist :name copyist-name))
+	  (setf copyist (make-copyist :name cn))
 	  copyist))))
 
-(defun process-doc (terms path terms-ht docs-ht authors-ht)
+(defun process-doc (pterms path docs-ht authors-ht)
   "Add document and relevant meta data to document db."
-
-  (defun gen-terms-ref (terms-in terms-ref terms-ht)
-    (if terms-in
-	(gen-terms-ref
-	 (cdr terms-in)
-
-	 (append terms-ref
-		 (cons (gethash (car terms-in) terms-ht) nil))
-	 terms-ht)
-	terms-ref))
 
   (let* ((metadata (read-metadata path))
 	 (doc-hash (gen-doc-hash metadata)))
 
-    (if (has-doc-p doc-hash docs-ht)
-	nil
+    (cond ((has-doc-p doc-hash docs-ht)
+	   (let ((ndv
+	   (setf (doc-versions(gethash doc-hash docs-ht)
 	(progn
 	  (setf (gethash doc-hash docs-ht)
 		(make-doc :name (cdr (nth 0 metadata))
 			  :ngrams (ngram:gen-n-grams (cdr (nth 0 metadata)))
 			  :author (get-author metdata authors-ht)
 			  :genre (cdr (nth 2 metadata))
-			  :version (cdr (nth 3 metadata))
-			  :copied-by (get-copyist metadata copyists-ht)
-			  :word-count (list-length terms)
-			  :org-file path))
-	  (process-terms terms terms-ht)
-	  (setf (doc-terms (gethash (cdr (nth 0 metadata)) docs-ht))
-		(gen-terms-ref terms nil terms-ht))
-	  t))))
+			  :versions
+			  (list (make-doc-version
+				 :version 0
+				 :word-count (list-length pterms)
+				 :org-file path
+				 :org-file-hash (sb-md5:md5sum-file path))))
+	  (setf (doc-terms (gethash (cdr (nth 0 metadata)) docs-ht)) pt)))))
 
 ;; document processing
 (defun add-file (path terms-ht docs-ht)
   "Add a (new) file to db."
 
-  (let ((terms (read-file path)))
-	(process-terms terms terms-ht)
-	(process-doc terms path terms-ht docs-ht)))
+  (let ((pt (process-terms (read-file path) terms-ht)))
+	(process-doc pt path docs-ht)))
 
 (defun search-docs (name docs-ht &optional (threshold 0.65))
   "Check the document collection for documents matching the supplied name."
 
   "maphash compare-n-grams if > threshold append to list, return"
+  1)
