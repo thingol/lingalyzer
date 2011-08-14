@@ -14,14 +14,14 @@
 
 (defstruct doc-container
   (name          "A tale" :type string :read-only t)
-  (author        nil      :type )
+  (author        nil      :type agent)
   (genre         "-"      :type string)
-  (versions      nil      :type list))
+  (versions      nil      :type (array doc-version)))
 
 (defstruct doc-version
   (version       0        :type integer)
-  (copied-by     nil      :type )
+  (copied-by     nil      :type agent)
   (word-count    0        :type integer)
   (org-file      "-"      :type string)
   (org-file-hash "-"      :type string)
-  (terms         nil      :type list))  
+  (terms         nil      :type (array term)))

@@ -1,37 +1,25 @@
 ;;
 ;; defpackage et. al. in use until I can get a hang on asdf
 ;;
-(load "/usr/local/src/lingalyzer/defpackage.lisp")
-(load "/usr/local/src/lingalyzer/lingalyzer-utils-structures.lisp")
-(load "/usr/local/src/lingalyzer/lingalyzer-utils-functions.lisp")
+;;(load "/usr/local/src/lingalyzer/defpackage.lisp")
+;;(load "/usr/local/src/lingalyzer/lingalyzer-utils-structures.lisp")
+;;(load "/usr/local/src/lingalyzer/lingalyzer-utils-functions.lisp")
 
 (in-package :org.kjerkreit.lingalyzer)
 
-(if (< (length sb-ext:*posix-argv*) 2)
-    (progn
-      (format t "~%*** ERROR *** Missing input file!~%")
-      (sb-ext:quit))
-    t)
+;(if (< (length sb-ext:*posix-argv*) 2)
+;    (progn
+;      (format t "~%*** ERROR *** Missing input file!~%")
+;      (sb-ext:quit))
+;    t)
 
 
 ;; Used until init function is ready
-(defconst +path+ (cadr sb-ext:*posix-argv*))
+;(defconst +path+ (cadr sb-ext:*posix-argv*))
+(defparameter *files* '("lingalyzer/test-data/de-bello-gallico-01-01-latin-library.txt"
+			"lingalyzer/test-data/de-bello-gallico-01-01-wikisource.txt"))
 
-(defun init ()
-  (defparameter *path0* "lingalyzer/test-data/de-bello-gallico-01-01-latin-library.txt")
-  (defparameter *path1* "lingalyzer/test-data/de-bello-gallico-01-01-wikisource.txt")
-
-  (defparameter *authors* (make-hash-table :test 'equal))
-  (defparameter *copyist* (make-hash-table :test 'equal))
-  (defparameter *docs* (make-hash-table :test 'equal))
-  (defparameter *terms* (make-hash-table :test 'equal))
-  (defparameter *translators* (make-hash-table :test 'equal)))
-
-
-
-
-
-(defparameter *terms-list* '("gallia" "est" "omnis" "divisa" "in" "partes" "tres" "quarum" "unam"
+(defparameter *terms* '("gallia" "est" "omnis" "divisa" "in" "partes" "tres" "quarum" "unam"
  "incolunt" "belgae" "aliam" "aquitani" "tertiam" "qui" "ipsorum" "lingua"
  "celtae" "nostra" "galli" "appellantur" "hi" "omnes" "lingua" "institutis"
  "legibus" "inter" "se" "differunt" "gallos" "ab" "aquitanis" "garumna"

@@ -1,5 +1,50 @@
 (in-package :org.kjerkreit.lingalyzer.utils)
 
+;;
+;; +agents+: authors (politicians, scholars, etc.) and copyists (monks,
+;;           scholars etc.)
+;; +docs+:   documents with relevant information including an array containing
+;;           the different versions addeded to the collection
+;; +terms+:  all word forms in collection; also ngrams for fuzzy matching and
+;;           counter for frequency
+;;
+;; +*-index+: adjustable arrays in the form of '(<ngram> . key) for fast
+;; searching using fuzzy matching
+
+
+
+(defun init-store (&optional (type memory) (ngram-index t))
+  "Set up the required datastructures.
+Let user chose whether to use an ngram based index.
+TODO: Let user chose type of store, e.g. memory, sql (cl-sql), git."
+
+  (when type
+    (print 'shut-up-about-that-unused-variable))
+  
+  (defconstant +agents+ (make-hash-table :test 'equal))
+  (defconstant +docs+ (make-hash-table :test 'equal))
+  (defconstant +terms+ (make-hash-table :test 'equal))
+
+
+  (when ngram-index
+    ;; highly uneducated guesses
+    (defconstant +agent-index+ (make-array
+				50
+				:element-type cons
+				:adjustable t
+				:fill-pointer 0))
+    (defconstant +doc-index+ (make-array
+			      150
+			      :element-type cons
+			      :adjustable t
+			      :fill-pointer 0))
+    (defconstant +term-index+ (make-array
+			       5000
+			       :element-type cons
+			       :adjustable t
+			       :fill-pointer 0))))
+  
+
 ;; low-level functions
 (defun file-string (path)
   "Sucks up an entire file from PATH into a freshly-allocated string, returning
@@ -11,7 +56,7 @@ from Cliki)"
            (data (make-string len)))
       (values data (read-sequence data s)))))
 
-(defun good-char-p (char &optional ((newline nil))
+(defun good-char-p (char &optional (newline nil))
   "Is it an alphanumeric, a space or possibly a newline?"
   
   (or (alpha-char-p char)
@@ -34,7 +79,6 @@ from Cliki)"
   (split-sequence:split-sequence #\Space (strip-text (file-string path))
 				 :remove-empty-subseqs t))
 
-
 (defun read-metadata (path)
   "Read supplied metadata from file and return as alist."
 
@@ -44,32 +88,31 @@ from Cliki)"
       (read metadata-file)))
 
 (defun gen-doc-hash (md)
-  "Make an md5sum from meta data."
+  "Make an md5sum from meta data. Useful in case two documents have the same name."
 
   (sb-md5:md5sum-string
    (concatenate 'string
 		(cdr (assoc 'author md))
-		(cdr (assoc 'genre md))
-		(cdr (assoc 'copied-by md))
 		(cdr (assoc 'name md)))))
 
-(defun has-doc-p (doc-hash docs-ht)
+(defun has-doc-p (doc-hash)
   "Compare meta data from two files to determine document equality."
 
-  (multiple-value-bind (value pres) (gethash doc-hash docs-ht) pres))
+  (gethash doc-hash *docs*))
   
 
 ;; First pass: check all terms, add if new
-(defun process-terms (terms terms-ht)
+(defun process-terms (terms)
   "Process terms. Add if not already in table, otherwise increase count by one.
 Returns a list of references to the terms processed in the orderd received."
 
   (flet ((get-term (term)
-	   (let ((th (gethash term terms-h)))
-	     (if th
-		 (progn (incf (term-count th)) th)
-		 (setf (gethash term terms-ht)
-			  (make-term :form term :count 1))))))
+	   (let ((th (gethash term *terms*)))
+	     (cond (th (incf (term-count th)) th)
+		   (t (setf (gethash term *terms*)
+			    (make-term :form term
+				       :ngrams (gen-n-grams term)
+				       :count 1)))))))
 
     (do ((ts
 	  (cdr terms)
@@ -79,62 +122,90 @@ Returns a list of references to the terms processed in the orderd received."
 	  (append processed-terms (list (get-term (car ts))))))
 	 ((not ts) processed-terms))))
   
-(defun get-author (metadata authors-ht)
-  "Get the reference to the author's structure. Make it if we don't already have
+(defun get-agent (name)
+  "Get the reference to the agent in question. Make it if we don't already have
  them."
 
-  (let* ((an (cdr (assoc 'author metadata))
-	 (author (gethash an authors-ht))))
-    (if author
-	author
-	(progn
-	  (setf author (make-author :name an))
-	  author))))
+  (let ((agent (gethash name *agents*)))
+    (if agent
+	agent
+	(setf (gethash name *agents*) (make-agent :name name)))))
 
-(defun get-copyist (metadata copyists-ht)
-  "Get the reference to the copyist's structure. Make it if we don't already have
- them."
 
-  (let* ((cn (cdr (assoc 'copied-by metadata))
-	 (copyist (gethash cn copyists-ht))))
-    (if copyist
-	copyist
-	(progn
-	  (setf copyist (make-copyist :name cn))
-	  copyist))))
-
-(defun process-doc (pterms path docs-ht authors-ht)
+(defun process-doc (pterms path)
   "Add document and relevant meta data to document db."
 
-  (let* ((metadata (read-metadata path))
-	 (doc-hash (gen-doc-hash metadata)))
+  (let* ((md (read-metadata path))
+	 (dh (gen-doc-hash md))
+	 (doc (has-doc-p dh))
+	 (add-doc-version
+	  #'(lambda (v)
+	      (make-doc-version
+	       :version v
+	       :copied-by (get-agent (cdr (assoc 'copied-by md)))
+	       :word-count (fillpointer pterms)
+	       :org-file path
+	       :org-file-hash (sb-md5:md5sum-file path)
+	       :terms pterms)))
+	      
+	 (new-doc
+	  #'(lambda (name)
+	      (setf (gethash dh +docs+)
+		    (make-doc
+		     :name     name
+		     :ngrams   (gen-n-grams name)
+		     :author   (get-agent (cdr (assoc 'author metdata)))
+		     :genre    (cdr (assoc 'genre metadata))
+		     :versions (make-array 3
+					   :element-type doc-version
+					   :adjustable t
+					   :fill-pointer 1))))))
+				     
+    (cond (doc
+	   (let* ((dv (doc-versions doc))
+		  (fp (fillpointer dv)))
+	     (setf (aref dv fp) (funcall #'add-doc-version fp))))
+	   (t (funcall #'new-doc (cdr (assoc 'name md)))))))
 
-    (cond ((has-doc-p doc-hash docs-ht)
-	   (let ((ndv
-	   (setf (doc-versions(gethash doc-hash docs-ht)
-	(progn
-	  (setf (gethash doc-hash docs-ht)
-		(make-doc :name (cdr (nth 0 metadata))
-			  :ngrams (ngram:gen-n-grams (cdr (nth 0 metadata)))
-			  :author (get-author metdata authors-ht)
-			  :genre (cdr (nth 2 metadata))
-			  :versions
-			  (list (make-doc-version
-				 :version 0
-				 :word-count (list-length pterms)
-				 :org-file path
-				 :org-file-hash (sb-md5:md5sum-file path))))
-	  (setf (doc-terms (gethash (cdr (nth 0 metadata)) docs-ht)) pt)))))
-
-;; document processing
-(defun add-file (path terms-ht docs-ht)
+;; exported functions
+;;
+;; manage documents
+;;
+(defun add-file (path)
   "Add a (new) file to db."
 
-  (let ((pt (process-terms (read-file path) terms-ht)))
-	(process-doc pt path docs-ht)))
+  (let ((pt (process-terms (read-file path))))
+	(process-doc pt path)))
+;;
+;; search
+;;
+(defun search-agents (query &optional (threshold 0.65))
+  "Search the agents in the collection. Threshold is set to 65% similarity
+  based on ngram comparison if indexing is in use."
+  
+  (search-index +agent-index+ query threshold))
 
-(defun search-docs (name docs-ht &optional (threshold 0.65))
+(defun search-docs (query &optional (threshold 0.65))
+  "Search the documents in the collection. Threshold is set to 65% similarity
+  based on ngram comparison if indexing is in use."
+  
+  (search-index +doc-index+ query threshold))
+
+(defun search-terms (query &optional (threshold 0.65))
+  "Search the terms in the collection. Threshold is set to 65% similarity
+  based on ngram comparison if indexing is in use."
+  
+  (search-index +term-index+ query threshold))
+
+(defun search-index (index query threshold)
   "Check the document collection for documents matching the supplied name."
 
-  "maphash compare-n-grams if > threshold append to list, return"
-  1)
+  (let ((matches (make-array 5 :adjustable t :fill-pointer 0))
+	(query-ngrams (gen-n-grams query)))
+    
+    (maphash #'(lambda (k v)
+		 (when (>= (compare-n-grams query-ngrams k) threshold)
+		   (vector-push-extend (gethash v docs) matches)))
+	     index)
+    
+    matches))
