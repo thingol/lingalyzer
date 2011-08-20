@@ -13,7 +13,7 @@
 
 
 
-(defun init-store (&optional (type memory) (ngram-index t))
+(defun init-store (&optional (type 'memory) (ngram-index t))
   "Set up the required datastructures.
 Let user chose whether to use an ngram based index.
 TODO: Let user chose type of store, e.g. memory, sql (cl-sql), git."
@@ -30,20 +30,22 @@ TODO: Let user chose type of store, e.g. memory, sql (cl-sql), git."
     ;; highly uneducated guesses
     (defconstant +agent-index+ (make-array
 				50
-				:element-type cons
+				:element-type 'cons
 				:adjustable t
 				:fill-pointer 0))
     (defconstant +doc-index+ (make-array
 			      150
-			      :element-type cons
+			      :element-type 'cons
 			      :adjustable t
 			      :fill-pointer 0))
     (defconstant +term-index+ (make-array
 			       5000
-			       :element-type cons
+			       :element-type 'cons
 			       :adjustable t
 			       :fill-pointer 0))))
   
+
+(init-store)
 
 ;; low-level functions
 (defun file-string (path)
@@ -98,7 +100,7 @@ from Cliki)"
 (defun has-doc-p (doc-hash)
   "Compare meta data from two files to determine document equality."
 
-  (gethash doc-hash *docs*))
+  (gethash doc-hash +docs+))
   
 
 ;; First pass: check all terms, add if new
@@ -107,9 +109,9 @@ from Cliki)"
 Returns a list of references to the terms processed in the orderd received."
 
   (flet ((get-term (term)
-	   (let ((th (gethash term *terms*)))
+	   (let ((th (gethash term +terms+)))
 	     (cond (th (incf (term-count th)) th)
-		   (t (setf (gethash term *terms*)
+		   (t (setf (gethash term +terms+)
 			    (make-term :form term
 				       :ngrams (gen-n-grams term)
 				       :count 1)))))))
@@ -126,10 +128,10 @@ Returns a list of references to the terms processed in the orderd received."
   "Get the reference to the agent in question. Make it if we don't already have
  them."
 
-  (let ((agent (gethash name *agents*)))
+  (let ((agent (gethash name +agents+)))
     (if agent
 	agent
-	(setf (gethash name *agents*) (make-agent :name name)))))
+	(setf (gethash name +agents+) (make-agent :name name)))))
 
 
 (defun process-doc (pterms path)
@@ -157,7 +159,7 @@ Returns a list of references to the terms processed in the orderd received."
 		     :author   (get-agent (cdr (assoc 'author metdata)))
 		     :genre    (cdr (assoc 'genre metadata))
 		     :versions (make-array 3
-					   :element-type doc-version
+					   :element-type 'doc-version
 					   :adjustable t
 					   :fill-pointer 1))))))
 				     
