@@ -47,55 +47,47 @@ TODO: Let user chose type of store, e.g. memory, sql (cl-sql), git."
 
 (init-store)
 
-;; low-level functions
-(defun file-string (path)
-  "Sucks up an entire file from PATH into a freshly-allocated string, returning
-two values: the string and the number of bytes read. (shamelessly stolen
-from Cliki)"
-  
-  (with-open-file (s path)
-    (let* ((len (file-length s))
-           (data (make-string len)))
-      (values data (read-sequence data s)))))
-
-(defun good-char-p (char &optional (newline nil))
-  "Is it an alphanumeric, a space or possibly a newline?"
-  
-  (or (alpha-char-p char)
-      (char-equal char #\Space)
-      (if newline (char-equal #\Newline))))
-
-(defun strip-text (text)
-  "Strip text of all unwanted characters and convert to lowercase."
-  
-  (let ((stripped-string))
-    (loop for char across text
-	 when (good-char-p char)
-	 collect (char-downcase char) into good-chars
-	 finally (setf stripped-string (coerce good-chars 'string)))
-    stripped-string))
-
+;; low-level
 (defun read-file (path)
   "Read file from disk. Returns list of strings."
+
+  (labels ((file-string (path)
+	     "Sucks up an entire file from PATH into a freshly-allocated string, returning
+two values: the string and the number of bytes read. (shamelessly stolen
+from Cliki)"
+	     (with-open-file (s path)
+	       (let* ((len (file-length s))
+		      (data (make-string len)))
+		 (values data (read-sequence data s)))))
+	   (good-char-p (char &optional (newline nil))
+	     "Is it an alphanumeric, a space or possibly a newline?"
+
+	     (or (alpha-char-p char)
+		 (char-equal char #\Space)
+		 (when newline (char-equal #\Newline))))
+	   (strip-text (text)
+	     "Strip text of all unwanted characters and convert to lowercase."
+
+	     (let ((stripped-string))
+	       (loop for char across text
+		    when (good-char-p char)
+		    collect (char-downcase char) into good-chars
+		    finally (setf stripped-string (coerce good-chars 'string)))
+	       stripped-string)))
+	   
   
-  (split-sequence:split-sequence #\Space (strip-text (file-string path))
-				 :remove-empty-subseqs t))
+  (split-sequence:split-sequence #\Space (strip-text (file-string path)) :remove-empty-subseqs t)))
 
 (defun read-metadata (path)
   "Read supplied metadata from file and return as alist."
 
-    (with-open-file (metadata-file
-		     (concatenate 'string path ".meta")
-		     :direction :input)
+    (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
       (read metadata-file)))
 
 (defun gen-doc-hash (md)
   "Make an md5sum from meta data. Useful in case two documents have the same name."
 
-  (sb-md5:md5sum-string
-   (concatenate 'string
-		(cdr (assoc 'author md))
-		(cdr (assoc 'name md)))))
+  (sb-md5:md5sum-string (concatenate 'string (cdr (assoc 'author md)) (cdr (assoc 'name md)))))
 
 (defun has-doc-p (doc-hash)
   "Compare meta data from two files to determine document equality."
@@ -163,11 +155,10 @@ Returns a list of references to the terms processed in the orderd received."
 					   :adjustable t
 					   :fill-pointer 1))))))
 				     
-    (cond (doc
-	   (let* ((dv (doc-versions doc))
-		  (fp (fillpointer dv)))
-	     (setf (aref dv fp) (funcall #'add-doc-version fp))))
-	   (t (funcall #'new-doc (cdr (assoc 'name md)))))))
+    (cond (doc (let* ((dv (doc-versions doc))
+		      (fp (fillpointer dv)))
+		 (setf (aref dv fp) (funcall #'add-doc-version fp))))
+	  (t (funcall #'new-doc (cdr (assoc 'name md)))))))
 
 ;; exported functions
 ;;
@@ -176,8 +167,7 @@ Returns a list of references to the terms processed in the orderd received."
 (defun add-file (path)
   "Add a (new) file to db."
 
-  (let ((pt (process-terms (read-file path))))
-	(process-doc pt path)))
+	(process-doc (process-terms (read-file path)) path))
 ;;
 ;; search
 ;;
@@ -196,18 +186,22 @@ Returns a list of references to the terms processed in the orderd received."
 (defun search-terms (query &optional (threshold 0.65))
   "Search the terms in the collection. Threshold is set to 65% similarity
   based on ngram comparison if indexing is in use."
-  
-  (search-index +term-index+ query threshold))
+
+  (let ((res))
+    (dolist (key (search-index +term-index+ query threshold))
+      (setf res (cons (gethash key +terms) res)))
+    (setf res (sort res #'string< :key #'term-name))))
+    
 
 (defun search-index (index query threshold)
   "Check the document collection for documents matching the supplied name."
 
-  (let ((matches (make-array 5 :adjustable t :fill-pointer 0))
+  (let ((matches)
 	(query-ngrams (gen-n-grams query)))
     
     (maphash #'(lambda (k v)
 		 (when (>= (compare-n-grams query-ngrams k) threshold)
-		   (vector-push-extend (gethash v docs) matches)))
+		   (setf matches (cons v matches))))
 	     index)
     
     matches))
