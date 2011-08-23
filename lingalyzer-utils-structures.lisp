@@ -1,27 +1,62 @@
 (in-package :org.kjerkreit.lingalyzer.utils)
 
-(defstruct agent
-  (name   "John Doe"  :type string :read-only t)
-  (ngrams nil         :type list   :read-only t)
-  (bday   "000-00-00" :type string)
-  (dday   "000-00-00" :type string)
-  (docs   nil         :type list))
+(defclass agent ()
+  ((name   :initarg  :name
+	   :initform "John Doe"
+	   :type     string
+	   :reader   ag-name)
+   (ngrams :initarg  :ngrams
+	   :initform '("$J" "Jo" "oh" "hn" "n " " D" "Do" "oe" "e$")
+	   :reader   ag-ngrams
+	   :type     list)
+   (bday   :initarg  :bday
+	   :initform "000-00-00"
+	   :type     string
+	   :reader   ag-bday)
+   (dday   :initarg  :dday
+	   :initform "000-00-00"
+	   :type     string
+	   :reader   ag-dday)
+   (docs   :type     list
+	   :accessor ag-docs)))
 
-(defstruct term
-  (form   ""  :type string :read-only t)
-  (ngrams nil :type list :read-only t)
-  (count  0   :type integer))
+(defclass word-form ()
+  ((form   :initarg  :form
+	   :type     string
+	   :reader   wf-form)
+   (ngrams :initarg  :ngrams
+	   :type     list
+	   :reader   wf-ngrams)
+   (count  :initform 0
+	   :type     integer
+	   :accessor wf-count)))
 
-(defstruct doc-container
-  (name          "A tale" :type string :read-only t)
-  (author        nil      :type agent)
-  (genre         "-"      :type string)
-  (versions      nil      :type (array doc-version)))
+(defclass doc-container ()
+  ((name      :initarg  :name
+	      :type     string
+	      :reader   dc-name)
+   (author    :initarg  :author
+	      :type     agent
+	      :reader   dc-author)
+   (genre     :initarg  :genre
+	      :type     string
+	      :reader   dc-genre)
+   (versiosns :type     (array doc-version)
+	      :accessor dc-vers))
 
-(defstruct doc-version
-  (version       0        :type integer)
-  (copied-by     nil      :type agent)
-  (word-count    0        :type integer)
-  (org-file      "-"      :type string)
-  (org-file-hash "-"      :type string)
-  (terms         nil      :type (array term)))
+(defclass doc-version ()
+  ((vid       :initarg :vid
+	      :reader  dv-vid
+	      :type    integer)
+   (copied-by :initarg :copied-by
+	      :type    agent)
+   (wc        :initarg :wc
+	      :reader  dv-wf
+	      :type    integer)
+   (file      :initarg :file
+	      :reader  dv-file
+	      :type    string)
+   (file-hash :initarg :file-hash
+	      :reader  file-hash
+	      :type    string)
+   (wf nil    :type    (array word-form))))
