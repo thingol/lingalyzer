@@ -1,43 +1,51 @@
 ;;
-;; defpackage et. al. in use until I can get a hang on asdf
+;; 
 ;;
-;;(load "/usr/local/src/lingalyzer/defpackage.lisp")
-;;(load "/usr/local/src/lingalyzer/lingalyzer-utils-structures.lisp")
-;;(load "/usr/local/src/lingalyzer/lingalyzer-utils-functions.lisp")
-
 (in-package :org.kjerkreit.lingalyzer)
 
-;(if (< (length sb-ext:*posix-argv*) 2)
-;    (progn
-;      (format t "~%*** ERROR *** Missing input file!~%")
-;      (sb-ext:quit))
-;    t)
+;; exported functions
+;;
+;; manage documents
+;;
+(defun add-file (path)
+  "Add a (new) file to db."
 
+	(process-doc path +docs+ +word-forms+))
+;;
+;; search
+;;
+(defun search-agents (query &optional (threshold 0.65))
+  "Search the agents in the collection. Threshold is set to 65% similarity
+  based on ngram comparison if indexing is in use."
+  
+  (search-index +agent-index+ query threshold))
 
-;; Used until init function is ready
-;(defconst +path+ (cadr sb-ext:*posix-argv*))
-(defparameter *files* '("lingalyzer/test-data/de-bello-gallico-01-01-latin-library.txt"
-			"lingalyzer/test-data/de-bello-gallico-01-01-wikisource.txt"))
+(defun search-docs (query &optional (threshold 0.65))
+  "Search the documents in the collection. Threshold is set to 65% similarity
+  based on ngram comparison if indexing is in use."
+  
+  (search-index +doc-index+ query threshold))
 
-(defparameter *terms* '("gallia" "est" "omnis" "divisa" "in" "partes" "tres" "quarum" "unam"
- "incolunt" "belgae" "aliam" "aquitani" "tertiam" "qui" "ipsorum" "lingua"
- "celtae" "nostra" "galli" "appellantur" "hi" "omnes" "lingua" "institutis"
- "legibus" "inter" "se" "differunt" "gallos" "ab" "aquitanis" "garumna"
- "flumen" "a" "belgis" "matrona" "et" "sequana" "dividit" "horum" "omnium"
- "fortissimi" "sunt" "belgae" "propterea" "quod" "a" "cultu" "atque"
- "humanitate" "provinciae" "longissime" "absunt" "minimeque" "ad" "eos"
- "mercatores" "saepe" "commeant" "atque" "ea" "quae" "ad" "effeminandos"
- "animos" "pertinent" "important" "proximique" "sunt" "germanis" "qui" "trans"
- "rhenum" "incolunt" "quibuscum" "continenter" "bellum" "gerunt" "qua" "de"
- "causa" "helvetii" "quoque" "reliquos" "gallos" "virtute" "praecedunt" "quod"
- "fere" "cotidianis" "proeliis" "cum" "germanis" "contendunt" "cum" "aut"
- "suis" "finibus" "eos" "prohibent" "aut" "ipsi" "in" "eorum" "finibus"
- "bellum" "gerunt" "eorum" "una" "pars" "quam" "gallos" "obtinere" "dictum"
- "est" "initium" "capit" "a" "flumine" "rhodano" "continetur" "garumna"
- "flumine" "oceano" "finibus" "belgarum" "attingit" "etiam" "ab" "sequanis"
- "et" "helvetiis" "flumen" "rhenum" "vergit" "ad" "septentriones" "belgae" "ab"
- "extremis" "galliae" "finibus" "oriuntur" "pertinent" "ad" "inferiorem"
- "partem" "fluminis" "rheni" "spectant" "in" "septentrionem" "et" "orientem"
- "solem" "aquitania" "a" "garumna" "flumine" "ad" "pyrenaeos" "montes" "et"
- "eam" "partem" "oceani" "quae" "est" "ad" "hispaniam" "pertinet" "spectat"
- "inter" "occasum" "solis" "et" "septentriones"))
+(defun search-word-forms (query &optional (threshold 0.65))
+  "Search the word-forms in the collection. Threshold is set to 65% similarity
+  based on ngram comparison if indexing is in use."
+
+  (let ((res))
+    (dolist (key (search-index +word-form-index+ query threshold))
+      (setf res (cons (gethash key +word-forms+) res)))
+    (setf res (sort res #'string< :key #'word-form-name))))
+    
+
+(defun search-index (index query threshold)
+  "Check the document collection for documents matching the supplied name."
+
+  (let ((matches)
+	(query-ngrams (gen-n-grams query)))
+    
+    (maphash #'(lambda (k v)
+		 (when (>= (compare-n-grams query-ngrams k) threshold)
+		   (setf matches (cons v matches))))
+	     index)
+    
+    matches))
+
