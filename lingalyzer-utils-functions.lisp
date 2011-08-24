@@ -50,17 +50,18 @@ TODO: Let user chose type of store, e.g. memory, sql (cl-sql), git."
   (when type
     (print 'shut-up-about-that-unused-variable))
   
-  (defconstant +agents+          (make-hash-table :test 'equal))
-  (defconstant +docs+            (make-hash-table :test 'equal))
-  (defconstant +word-forms+      (make-hash-table :test 'equal))
-  (defconstant +agent-index+     (make-array 50   :element-type 'cons :adjustable t :fill-pointer 0))
-  (defconstant +doc-index+       (make-array 150  :element-type 'cons :adjustable t :fill-pointer 0))
-  (defconstant +word-form-index+ (make-array 5000 :element-type 'cons :adjustable t :fill-pointer 0)))
-  
+  (list
+   (list
+    (make-hash-table :test 'equal)
+    (make-hash-table :test 'equal)
+    (make-hash-table :test 'equal))
+   (list
+    (make-array 200  :element-type 'cons :adjustable t :fill-pointer 0)
+    (make-array 150  :element-type 'cons :adjustable t :fill-pointer 0)
+    (make-array 5000 :element-type 'cons :adjustable t :fill-pointer 0))))
+ 
 
-(init-store)
-
-;; low-level
+  ;; low-level
 (defun read-file (path)
   "Read file from disk. Returns list of strings."
 
@@ -83,98 +84,122 @@ from Cliki)"
 
 	     (let ((stripped-string))
 	       (loop for char across text
-		    when (good-char-p char)
-		    collect (char-downcase char) into good-chars
-		    finally (setf stripped-string (coerce good-chars 'string)))
+		  when (good-char-p char)
+		  collect (char-downcase char) into good-chars
+		  finally (setf stripped-string (coerce good-chars 'string)))
 	       stripped-string)))
 	   
   
-  (split-sequence #\Space (strip-text (file-string path)) :remove-empty-subseqs t)))
+    (split-sequence #\Space (strip-text (file-string path)) :remove-empty-subseqs t)))
 
 (defun read-metadata (path)
   "Read supplied metadata from file and return as alist."
 
-    (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
-      (read metadata-file)))
+  (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
+    (read metadata-file)))
 
-(defun gen-doc-hash (author name)
-  "Make an md5sum from meta data. Useful in case two documents have the same name."
-
-  (md5sum-string (concatenate 'string author name)))
-
-;; First pass: check all word-forms, add if new
-(defun process-word-forms (word-forms table)
+(defun process-word-forms (word-forms db)
   "Process word forms. Add if not already in table, otherwise increase count by one.
 Returns a list of references to the word-forms processed in the orderd received."
 
-  (flet ((get-word-form (word-form)
-	   (let ((wf (gethash word-form table)))
-	     (cond (wf (incf (word-form-count wf)) wf)
-		   (t (setf (gethash word-form table)
-			    (make-word-form :form word-form
-				       :ngrams (gen-n-grams word-form)
-				       :count 1)))))))
+  (let* ((wft (first db))
+	 (wfi (second db))
+	 (get-word-form #'(lambda (word-form)
+			    (let ((wf (gethash word-form wft)))
+			      (if wf
+				  (incf (word-form-count wf))
+				  (progn
+				    (vector-push-extend (cons (gen-n-grams word-form) word-form) wfi)
+				    (setf wf
+					  (setf (gethash word-form wft)
+						(make-word-form
+						 :form word-form
+						 :ngrams (gen-n-grams word-form)
+						 :count 1)))))
+			      wf))))
 
     (do ((wfs
 	  (cdr word-forms)
 	  (cdr wfs))
 	 (processed-word-forms
-	  (list (get-word-form (car word-forms)))
-	  (cons (get-word-form (car wfs) processed-word-forms))))
-	 ((not wfs) (reverse processed-word-forms)))))
+	  (list (funcall get-word-form (car word-forms)))
+	  (cons (funcall get-word-form (car wfs)) processed-word-forms)))
+	((not wfs) (reverse processed-word-forms)))))
   
-(defun get-object (name table)
-  "Get the reference to the agent in question. Make it if we don't already have
- them."
-
-  (let ((object (gethash name table)))
-    (if object
-	object
-	(setf (gethash name table) (make-agent :name name)))))
-
-
-(defun process-doc (path tables)
+(defun process-doc (path db)
   "Add document and relevant meta data to document db."
 
-  (let* ((md        (read-metadata path))
-	 (at        (first tables))
-	 (dt        (second tables))
-         (wft       (third tables))
-	 (an        (cdr (assoc 'author md)))
-	 (dn        (cdr (assoc 'name md)))
-	 (cn        (cdr (assoc 'copied-by md)))
-	 (dh        (gen-doc-hash an dn))
-	 (author    (gethash an at))
-	 (doc       (gethash dh dt))
-	 (copied-by (gethash cn at))
-	 (p-wfs     (process-word-forms path wft))
-	 (add-doc-version
-	  #'(lambda (v)
-	      (make-doc-version
-	       :version v
-	       :copied-by (gethash (cdr (assoc 'copied-by md)) at)
-	       :word-count (fillpointer p-wfs)
-	       :org-file path
-	       :org-file-hash (md5sum-file path)
-	       :word-forms p-wfs)))
-	      
+  (let* ((metadata             (read-metadata path))
+	 (agent-table          (first  (first  db)))
+	 (agent-index          (second (first  db)))
+	 (meta-doc-table       (first  (second db)))
+	 (meta-doc-index       (second (second db)))
+	 (word-form-table      (first  (third  db)))
+	 (word-form-index      (second (third  db)))
+	 (author-name          (cdr (assoc 'author    metadata)))
+	 (meta-doc-name        (cdr (assoc 'name      metadata)))
+	 (copyist-name         (cdr (assoc 'copied-by metadata)))
+	 (meta-doc-hash        (md5sum-string (concatenate 'string author-name meta-doc-name)))
+	 (author               (gethash author-name   agent-table))
+	 (meta-doc             (gethash meta-doc-hash meta-doc-table))
+	 (copied-by            (gethash copyist-name  agent-table))
+	 (processed-word-forms (process-word-forms path (cons word-form-table word-form-index)))
+	 (doc)
 	 (new-doc
 	  #'(lambda ()
-	      (let* ((nd (setf doc
-			       (setf (gethash dh dt)
-				     (make-doc
-				      :name   dn
-				      :ngrams (gen-n-grams dn)
-				      :author author
-				      :genre  (cdr (assoc 'genre metadata)))))
+	      (setf doc
+		    (setf (meta-doc-docs meta-doc)
+			  (cons
+			   (make-doc
+			    :meta-doc      meta-doc
+			    :copied-by     copied-by
+			    :word-count    (list-length processed-word-forms)
+			    :org-file      path
+			    :org-file-hash (md5sum-file path)
+			    :word-forms    processed-word-forms)
+			   (meta-doc-docs meta-doc))))))
+	 (new-author
+	  #'(lambda ()
+	      (setf (meta-doc-author meta-doc)
+		    (setf (gethash author-name agent-table)
+			  (make-agent
+			   :name     author-name
+			   :authored (list meta-doc))))
+	      (vector-push-extend (cons (gen-n-grams author-name) author-name) agent-index)))
+	 (new-copyist
+	  #'(lambda ()
+	      (setf copied-by
+		    (setf (gethash copyist-name agent-table)
+			  (make-agent
+			   :name copyist-name)))
+	      (vector-push-extend (cons (gen-n-grams copyist-name) copyist-name) agent-index)))
+	 (new-meta-doc
+	  #'(lambda ()
+	      (setf doc
+		    (setf (gethash meta-doc-hash meta-doc-table)
+			  (make-meta-doc
+			   :name   meta-doc-name
+			   :genre  (cdr (assoc 'genre metadata)))))
+	      (vector-push-extend (cons (gen-n-grams meta-doc-name) meta-doc-hash) meta-doc-index))))
 
-    (while (not doc)
-      (new-doc (cdr (assoc 'name md))))
-    (while (not author)
-	 
-	 
+	 (when (not meta-doc)
+	   (funcall new-meta-doc))
 
-    (let* ((dv (doc-versions (gethash dh dt)))
-	   (fp (fillpointer dv)))
-      (setf (aref dv fp) (add-doc-version fp)))))
+	 (if (not author)
+	     (funcall new-author)
+	     (and
+	      (setf (meta-doc-author meta-doc) author)
+	      (setf (agent-authored author) (cons meta-doc (agent-authored author)))))
+
+	 (when (not copied-by)
+	   (funcall new-copyist))
+
+	 (funcall new-doc)
+
+	 (setf (agent-copied copied-by) (cons doc (agent-copied copied-by)))
+    
+
+    t))
+
+
 

@@ -1,29 +1,36 @@
 (in-package :cl-user)
 
-
 (defpackage #:org.kjerkreit.lingalyzer.utils
-  (:nicknames "lingalyzer-utils")
+  (:nicknames la-u :LA-U)
   (:use #:common-lisp
 	#:split-sequence
 	#:sb-md5
-	#:ngram)
-  (:import-from #:split-sequence
+	#:org.kjerkreit.ngram)
+#|  (:import-from #:split-sequence
 		#:split-sequence)
   (:import-from #:sb-md5
 		#:md5sum-string
 		#:md5sum-file)
-  (:import-from #:ngram
+  (:import-from #:org.kjerkreit.ngram
+		#:gen-n-grams)|#
+  (:export #:init-store
+	   #:process-doc
+	   #:agent-name
+	   #:meta-doc-name
+	   #:word-form-form))
+
+(defpackage #:org.kjerkreit.lingalyzer
+  (:nicknames la :LA)
+  (:use #:common-lisp
+	#:org.kjerkreit.ngram
+	#:org.kjerkreit.lingalyzer.utils)
+#|  (:import-from #:org.kjerkreit.ngram
 		#:compare-n-grams
 		#:gen-n-grams)
-  (:export #:init-store
-	   #:add-doc
+  (:import-from #:org.kjerkreit.lingalyzer.utils *)|#
+  (:export #:add-doc
+	   #:new
 	   #:search-agents
 	   #:search-docs
 	   #:search-terms
 	   #:search-index))
-
-(defpackage #:org.kjerkreit.lingalyzer
-  (:nicknames "lingalyzer")
-  (:use #:common-lisp
-	#:lingalyzer-utils)
-  (:import-from #:lingalyzer-utils *))
