@@ -1,4 +1,10 @@
-;(asdf:load-system 'org.kjerkreit.lingalyzer)
+(in-package :cl-user)
+
+(unless (find-package 'org.kjerkreit.lingalyzer)
+  (asdf:load-system 'org.kjerkreit.lingalyzer))
+
+(use-package 'org.kjerkreit.lingalyzer)
+ 
 
 ;(if (< (length sb-ext:*posix-argv*) 2)
 ;    (progn
@@ -9,8 +15,15 @@
 
 ;; Used until init function is ready
 ;(defconst +path+ (cadr sb-ext:*posix-argv*))
-(defparameter *files* '("lingalyzer/test-data/de-bello-gallico-01-01-latin-library.txt"
-			"lingalyzer/test-data/de-bello-gallico-01-01-wikisource.txt"))
+(defparameter *files*
+  '("/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-primvs-thelatinlibrary.com.txt"
+    "/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-secundus-thelatinlibrary.com.txt"
+    "/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-tertius-thelatinlibrary.com.txt"
+    "/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-qvartvs-thelatinlibrary.com.txt"
+    "/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-qvintvs-thelatinlibrary.com.txt"
+    "/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-sextvs-thelatinlibrary.com.txt"
+    "/usr/local/src/cl/lingalyzer/test-data/de-bello-gallico-liber-septimvs-thelatinlibrary.com.txt"))
+
 
 (defparameter *terms*
   '("gallia" "est" "omnis" "divisa" "in" "partes" "tres" "quarum" "unam" "incolunt" "belgae" "aliam"
@@ -31,3 +44,13 @@
     "aquitania" "a" "garumna" "flumine" "ad" "pyrenaeos" "montes" "et" "eam" "partem" "oceani"
     "quae" "est" "ad" "hispaniam" "pertinet" "spectat" "inter" "occasum" "solis" "et"
     "septentriones"))
+
+(new-db)
+
+(defun run-test ()
+
+  (flush-db)
+  (mapcar #'add-file *files*))
+
+ 
+ 

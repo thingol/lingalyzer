@@ -1,0 +1,21 @@
+- feeder:
+  * read file
+  * read metadata
+  
+
+- storage:
+  * add document
+  * delete document
+  * new db
+  * drop db
+  * close db
+
+
+- analysis:
+  * statistics for
+    - documents
+    - meta documents
+    - authors
+    - copyists
+    - word forms
+  * similarity

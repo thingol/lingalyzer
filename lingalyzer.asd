@@ -1,18 +1,16 @@
 ;;; -*- Lisp -*-
 
-(in-package #:cl-user)
-(defpackage #:lingalyzer-system
-  (:use #:asdf #:cl))
-
-(in-package #:lingalyzer-system)
-(asdf:load-system :split-sequence)
-(asdf:load-system :sb-md5)
-(asdf:load-system :org.kjerkreit.ngram)
+(in-package #:asdf)
 
 (defsystem org.kjerkreit.lingalyzer
-  :version "0.0.2"
+  :version "0.0.3"
+  :depends-on (split-sequence
+	       sb-md5
+	       org.kjerkreit.ngram)
   :components ((:file "defpackage")
-	       (:file "lingalyzer-utils-structures" :depends-on ("defpackage"))
-               (:file "lingalyzer-utils-functions" :depends-on ("defpackage"))
-	       (:file "lingalyzer" :depends-on ("lingalyzer-utils-functions"
-						"lingalyzer-utils-structures"))))
+	       (:file "lingalyzer-storage-ht"      :depends-on ("defpackage"))
+	       ;;; (:file "lingalyzer-storage-clsql"   :depends-on ("defpackage")) ;;; soon to come
+	       (:file "lingalyzer-storage"         :depends-on ("lingalyzer-storage-ht"))
+	       (:file "lingalyzer-utils-functions" :depends-on ("defpackage"))
+	       (:file "lingalyzer"                 :depends-on ("lingalyzer-storage"
+								"lingalyzer-utils-structures"))))
