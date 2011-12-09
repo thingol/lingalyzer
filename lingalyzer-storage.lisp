@@ -2,13 +2,54 @@
 
 ;; storage api
 
-
 ;;; State
 
-(defparameter *db* nil)
+(defvar *db* nil)
+
+;;; Internal representation of entities
+
+;;;; Agent: authors or scribes
+
+(defstruct agent
+  (name       "John Doe"  :type string)
+  (bday       "000-00-00" :type string)
+  (dday       "000-00-00" :type string)
+  (authored   nil         :type list)
+  (copied     nil         :type list))
+
+;;;; Documents, an actual version of the text, of which multipe make up an mdoc
+
+(defstruct doc
+  (mdoc       nil         :type array)
+  (copied-by  "key"       :type string)
+  (word-count -1          :type integer)
+  (file       "bogus"     :type string)
+  (hash       nil         :type array))
+
+;;; Meta documents, container for copies of a document
+
+(defstruct mdoc
+  (name       "A tale"    :type string)
+  (author     "key"       :type string)
+  (genre      "Unknoiwn"   :type string)
+  (docs       nil         :type list)
+  (hash       nil         :type array))
+
+;;;; Word forms, all forms are stored separately
+
+(defstruct word-form
+  (form       ""          :type string)
+  (count      0           :type integer))
+
 
 ;;; Public functions
 
+;;;; INIT
+
+(defun new-db (name &optional (type 'ht))
+  "Create a new database of the desired type and return reference."
+
+  (setf *db* (make-instance type)))
 
 ;;;; DB
 
@@ -22,15 +63,11 @@
   
   (__drop-db *db*))
 
-(defun gc-db ()
-  "Removes orphaned entities."
+(defun gc-db ((&optional rem-ent nil))
+  "Marks orphaned entities as such, or removes them."
 
-  (__gc-db *db*))
-
-(defun new-db (name &optional (type 'ht))
-  "Create a new database of the desired type and return reference."
-
-  (setf *db* (make-instance type)))
+  (setf *db-dirty* nil)
+  (__gc-db *db* rem-ent))
 
 (defun open-db (name type)
   "Open a db. Complain if one is already open."
@@ -40,8 +77,6 @@
 
   )
 
-
-
 ;;;; Content
 
 (defun add (entity)
@@ -49,14 +84,21 @@
 
   (__add *db* entity))
 
-(defun get (entity)
+(defun get (entity (&optional type nil))
   "Get an entity from the database."
 
-  (__get *db* entity))
+  (__get *db* entity type))
+
+(defun get-orphans ()
+  "Return all orphaned entities"
+
+  (when *db-dirty*
+    (gc-db))
 
 (defun remove (entity)
   "Remove an entity from the database."
 
+  (setf *db-dirty* t)
   (__remove *db* entity))
 
 (defun update (entity)
@@ -78,7 +120,7 @@
 
 (defgeneric __drop-db (db))
 
-(defgeneric __gc-db (db))
+(defgeneric __gc-db (db rem-ent))
 
 (defgeneric __open-db (db))
 
@@ -87,6 +129,8 @@
 (defgeneric __add (db entity))
 
 (defgeneric __get (db entity))
+
+(defgeneric __increment-wf-count (db wf))
 
 (defgeneric __remove (db entity))
 

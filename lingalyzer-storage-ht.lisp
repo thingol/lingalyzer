@@ -3,6 +3,7 @@
 ;; struct for db
 
 (defstruct ht
+  (dirty-db   nil)      
   (agent-t    (make-hash-table  :test 'equal)
 	      :type hash-table)
   (agent-i    (make-array       200
@@ -30,44 +31,14 @@
 	      :type hash-table))
 
 
-;; structs for entity types, also the internal representation
-
-;;; authors or copyists
-(defstruct agent
-  (name       "John Doe"  :type string)
-  (bday       "000-00-00" :type string)
-  (dday       "000-00-00" :type string)
-  (authored   nil         :type list)
-  (copied     nil         :type list))
-
-;;; documents, an actual version of the text, of which multipe make up an mdoc
-(defstruct doc
-  (mdoc       nil         :type array)
-  (copied-by  "key"       :type string)
-  (word-count -1          :type integer)
-  (file       "bogus"     :type string)
-  (hash       nil         :type array))
-
-;;; meta documents, container for copies of a document
-(defstruct mdoc
-  (name       "A tale"    :type string)
-  (author     "key"       :type string)
-  (genre      "Unknown"   :type string)
-  (docs       nil         :type list)
-  (hash       nil         :type array))
-
-;;; word forms
-(defstruct word-form
-  (form       ""          :type string)
-  (count      0           :type integer))
-
-
-;; low level db operations
+;;;; low level db operations
 (defmethod close-db ((db ht))
   (drop-db db))
 
 (defmethod drop-db ((db ht))
   (setf db nil))
+
+(defmethod __gc-db ((db ht) rem-ent))
 
 ;; old versions, and rather messy...
 (new-doc
@@ -149,6 +120,11 @@
 
 (defmethod __get ((db ht) (entity word-form))
   (gethash (word-form-form entity) wform-t))
+
+;;;;; increase-wf-count
+
+(defmethod __increase-wf-count ((db ht) wf))
+
 
 ;;;;; remove
 
