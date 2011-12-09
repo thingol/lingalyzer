@@ -1,35 +1,32 @@
 (in-package :org.kjerkreit.lingalyzer.storage)
 
-;; struct for db
+;;;; Class definition for the memory only db type
 
-(defstruct ht
-  (dirty-db   nil)      
-  (agent-t    (make-hash-table  :test 'equal)
-	      :type hash-table)
-  (agent-i    (make-array       200
-			        :element-type 'cons
-			        :adjustable   t
-			        :fill-pointer 0)
-	      :type array)
-  (mdoc-t     (make-hash-table  :test         'equalp)
-	      :type hash-table)
-  (mdoc-i     (make-array       150
-			        :element-type 'cons
-			        :adjustable t
-			        :fill-pointer 0)
-	      :type array)
-  (wform-t    (make-hash-table  :test         'equal)
-	      :type hash-table)
-  (wform-i    (make-array       5000
-			        :element-type 'cons
-			        :adjustable   t
-			        :fill-pointer 0)
-	      :type array)
-  (doc-t      (make-hash-table  :test         'equalp)
-	      :type hash-table)
-  (doc-cont-t (make-hash-table  :test         'equalp)
-	      :type hash-table))
-
+(defclass ht (lingalyzer-db)      
+  ((agent-t    :reader   agent-t
+	       :initform (make-hash-table  :test 'equal))
+   (agent-i    :reader   agent-i
+	       :initform (make-array       200
+					   :element-type 'cons
+					   :adjustable   t
+					   :fill-pointer 0))
+   (mdoc-t     :reader   mdoc-t
+	       :initform (make-hash-table  :test         'equalp))
+   (mdoc-i     :initform (make-array       150
+					   :element-type 'cons
+					   :adjustable t
+					   :fill-pointer 0))
+   (wform-t    :reader   wform-t
+	       :initform (make-hash-table  :test         'equal))
+   (wform-i    :reader   wform-i
+	       :initform (make-array       5000
+					   :element-type 'cons
+					   :adjustable   t
+					   :fill-pointer 0))
+   (doc-t      :reader   doc-t
+	       :initform (make-hash-table  :test         'equalp))
+   (doc-cont-t :reader   doc-cont-t
+	       :initform (make-hash-table  :test         'equalp))))
 
 ;;;; low level db operations
 (defmethod close-db ((db ht))
@@ -38,7 +35,10 @@
 (defmethod drop-db ((db ht))
   (setf db nil))
 
-(defmethod __gc-db ((db ht) rem-ent))
+(defmethod __gc-db ((db ht) rem-ent)
+  "TODO"
+
+  )
 
 ;; old versions, and rather messy...
 (new-doc
@@ -106,7 +106,6 @@
 (defmethod __add ((db ht) (entity word-form))
   (setf (gethash (word-form-form entity) wform-t) entity))
 
-
 ;;;;; get
 
 (defmethod __get ((db ht) (entity agent))
@@ -124,7 +123,6 @@
 ;;;;; increase-wf-count
 
 (defmethod __increase-wf-count ((db ht) wf))
-
 
 ;;;;; remove
 
@@ -154,7 +152,6 @@
 	 
 
   )
-
 
 ;;;; internal support functions
 (defun index-lookup (index query threshold)

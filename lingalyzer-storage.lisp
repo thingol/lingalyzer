@@ -6,6 +6,16 @@
 
 (defvar *db* nil)
 
+;;; Toplevel db class
+
+(defclass lingalyzer-db ()
+  ((name  :accessor name
+	  :initarg  :name
+	  :initform "Unnamed")
+   (state :reader   db-dirty-p
+	  :writer   dirty-db
+	  :initform nil)))
+
 ;;; Internal representation of entities
 
 ;;;; Agent: authors or scribes
@@ -66,8 +76,8 @@
 (defun gc-db ((&optional rem-ent nil))
   "Marks orphaned entities as such, or removes them."
 
-  (setf *db-dirty* nil)
-  (__gc-db *db* rem-ent))
+  (__gc-db *db* rem-ent)
+  (dirty-db *db* nil))
 
 (defun open-db (name type)
   "Open a db. Complain if one is already open."
@@ -92,14 +102,15 @@
 (defun get-orphans ()
   "Return all orphaned entities"
 
-  (when *db-dirty*
+  (when (db-dirty-p *db*)
     (gc-db))
+  )
 
 (defun remove (entity)
   "Remove an entity from the database."
 
-  (setf *db-dirty* t)
-  (__remove *db* entity))
+  (__remove *db* entity)
+  (dirty-db *db* t))
 
 (defun update (entity)
   "Update an entity in the database."
