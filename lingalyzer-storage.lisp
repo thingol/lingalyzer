@@ -5,51 +5,47 @@
 ;;; State
 
 (defvar *db* nil)
+(defvar *index* nil)
 
-;;; Toplevel db class
+;;; Datatypes
 
 (defclass lingalyzer-db ()
+  "Toplevel db class."
   ((name  :accessor name
 	  :initarg  :name
-	  :initform "Unnamed")
+	  :initform "Unnamed"
+	  :type     'string)
    (state :reader   db-dirty-p
-	  :writer   dirty-db
+	  :writer   db-dirty
 	  :initform nil)))
 
-;;; Internal representation of entities
-
-;;;; Agent: authors or scribes
-
 (defstruct agent
-  (name       "John Doe"  :type string)
-  (bday       "000-00-00" :type string)
-  (dday       "000-00-00" :type string)
-  (authored   nil         :type list)
-  (copied     nil         :type list))
-
-;;;; Documents, an actual version of the text, of which multipe make up an mdoc
+  "Agent: authors or scribes."
+  (name     "John Doe"  :type string)
+  (bday     "000-00-00" :type string)
+  (dday     "000-00-00" :type string)
+  (authored nil         :type list)
+  (copied   nil         :type list))
 
 (defstruct doc
-  (mdoc       nil         :type array)
-  (copied-by  "key"       :type string)
-  (word-count -1          :type integer)
-  (file       "bogus"     :type string)
-  (hash       nil         :type array))
-
-;;; Meta documents, container for copies of a document
+  "Documents, an actual version of the text, of which multipe make up an mdoc."
+  (mdoc     nil         :type array)
+  (scribe   "John Doe"  :type string)
+  (length   0           :type integer)
+  (hash     nil         :type array))
 
 (defstruct mdoc
-  (name       "A tale"    :type string)
-  (author     "key"       :type string)
-  (genre      "Unknoiwn"   :type string)
-  (docs       nil         :type list)
-  (hash       nil         :type array))
-
-;;;; Word forms, all forms are stored separately
+  "Meta documents, container for copies of a document."
+  (name     "A tale"    :type string)
+  (author   "John Doe"  :type string)
+  (genre    "Unknown"   :type string)
+  (docs     nil         :type list)
+  (hash     nil         :type array))
 
 (defstruct word-form
-  (form       ""          :type string)
-  (count      0           :type integer))
+  "Word forms, all forms are stored separately."
+  (form     nil         :type string)
+  (count    1           :type integer))
 
 
 ;;; Public functions
@@ -57,7 +53,7 @@
 ;;;; INIT
 
 (defun new-db (name &optional (type 'ht))
-  "Create a new database of the desired type and return reference."
+  "Create a new database of the desired type."
 
   (setf *db* (make-instance type)))
 
@@ -79,13 +75,13 @@
   (__gc-db *db* rem-ent)
   (dirty-db *db* nil))
 
-(defun open-db (name type)
-  "Open a db. Complain if one is already open."
+(defun open-db (type name)
+  "Open a db. Close the currently open db (if one exists)."
   
   (when *db*
     (__close-db *db*))
 
-  )
+  (__open type name))
 
 ;;;; Content
 
@@ -93,6 +89,11 @@
   "Add an entity to the database."
 
   (__add *db* entity))
+
+(defun exists-p (query (&optional type nil))
+  "Do we have a matching entity?"
+
+  (__exists-p *db* query type))
 
 (defun get (entity (&optional type nil))
   "Get an entity from the database."
@@ -105,6 +106,11 @@
   (when (db-dirty-p *db*)
     (gc-db))
   )
+
+(defun increase-wf-count (wf)
+  "Increase the count of a word form."
+
+  (__increase-wf-count *db* wf))
 
 (defun remove (entity)
   "Remove an entity from the database."
@@ -133,18 +139,20 @@
 
 (defgeneric __gc-db (db rem-ent))
 
-(defgeneric __open-db (db))
+(defgeneric __open-db (type name))
 
 ;;;; Content
 
 (defgeneric __add (db entity))
 
+(defgeneric __exists-p (db query type))
+
 (defgeneric __get (db entity))
 
-(defgeneric __increment-wf-count (db wf))
+(defgeneric __increase-wf-count (db wf))
 
 (defgeneric __remove (db entity))
 
 (defgeneric __update (db entity))
 
-(defgeneric __search (db query entity-type))
+(defgeneric __search (db query type))
