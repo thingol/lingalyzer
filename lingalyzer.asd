@@ -3,14 +3,22 @@
 (in-package #:asdf)
 
 (defsystem org.kjerkreit.lingalyzer
-  :version "0.0.3"
+  :version "0.0.4"
   :depends-on (split-sequence
-	       sb-md5
+	       org.kjerkreit.utils
 	       org.kjerkreit.ngram)
-  :components ((:file "defpackage")
-	       (:file "lingalyzer-storage-ht"      :depends-on ("defpackage"))
-	       ;;; (:file "lingalyzer-storage-clsql"   :depends-on ("defpackage")) ;;; soon to come
-	       (:file "lingalyzer-storage"         :depends-on ("lingalyzer-storage-ht"))
-	       (:file "lingalyzer-utils-functions" :depends-on ("defpackage"))
-	       (:file "lingalyzer"                 :depends-on ("lingalyzer-storage"
-								"lingalyzer-utils-structures"))))
+  :components ((:module "store"
+			:components
+			((:file "package")
+			 (:file "store"      :depends-on ("package"))
+			 (:file "store-ht"   :depends-on ("store"))))
+	       (:module "feeder"
+			:components
+			((:file "package")
+			 (:file "processing" :depends-on ("package"))))
+	       (:module "tests"
+			:components
+			((:file "package")
+			 (:file "feeding"    :depends-on ("package")))
+			:depends-on ("store"
+				     "feeder"))))
