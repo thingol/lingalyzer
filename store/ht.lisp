@@ -1,10 +1,35 @@
 (in-package :org.kjerkreit.lingalyzer.storage)
 
-;; TODO
+;; DONE DB
+;; __close
+;; __drop
 ;; __gc
+;; __open
+;;
+;; Content
+;; __add
+;; __get
+;; __increase-wf-count
+;; __remove
+;; __update
+
+;; DONE INDEX
+;; __close
+;; __drop
+;; __gc
+;; __indexed-p
+;; __open
+;; __search
+
+;; TODO DB
+;; __gc
+;; __get-all
 ;; __get-by
 ;; __get-childless
-;; __get-orphans
+
+;; TODO INDEX
+;; __gc
+;; __merge
 
 
 ;;;; Class definition for the memory only db and index types
@@ -52,7 +77,7 @@
 
 
 
-;;;; Content
+;;;; DB: content - general
 
 (defmethod __add ((db ht-db) entity key)
   (setf (gethash key (slot-value db (type-of entity))) entity))
@@ -64,39 +89,33 @@
 
 (defmethod __get-by ((db ht-db) type slot value))
 
-(defmethod __get-childless ((db ht-db)))
-
-(defmethod __get-orhpans ((db ht-db)))
-
-(defmethod __increase-wf-count ((db ht-db) (form string))
-  (incf (gethash form (wform db))))
-
 (defmethod __remove ((db ht-db) type key)
   (remhash key (slot-value db (build-symbol 'type)))
   
 (defmethod __update ((db ht-db) entity key)
   (__add db entity key))
 
-;;;;; search
+;;;; DB: content - specific
 
-(defmethod __search ((db ht-db) query entity-type)
-  (if entity-type
-      (etypecase entity-type
-	(:agent
-	 
+(defmethod __get-childless ((db ht-db)))
 
-  )
+(defmethod __increase-wf-count ((db ht-db) (form string))
+  (incf (gethash form (wform db))))
 
-;;;; internal support functions
-(defun index-lookup (index query threshold)
-  "Search the specified index."
+;;;; Index
 
+(defmethod __indexed-p ((index ht-index) type key)
+  (loop for entry being the elements of (slot-value index type)
+       until (string= (car entry) key)
+       finally (return entry)))
+
+(defmethod __search ((index ht-index) type query threshold)
   (let ((matches)
-	(query-ngrams (gen-n-grams query)))
+	(qng (gen-n-grams query)))
     
     (map 'list #'(lambda (x)
-		   (when (>= (compare-n-grams query-ngrams (car x)) threshold)
+		   (when (>= (compare-n-grams qng (car x)) threshold)
 		     (setf matches (cons (cdr x) matches))))
-	 (get-index type))
+	 (slot-value index type))
     
     matches))
