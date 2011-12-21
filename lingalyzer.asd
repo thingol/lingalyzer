@@ -4,14 +4,17 @@
 
 (defsystem org.kjerkreit.lingalyzer
   :version "0.0.4"
+  :author "Marius Hårstad Kjerkreit"
+  :license "BSD-style"
   :depends-on (split-sequence
 	       org.kjerkreit.utils
-	       org.kjerkreit.ngram)
-  :components ((:module "store"
+	       org.kjerkreit.utils.ngram)
+  :components ((:static-file "LICENSE")
+	       (:module "store"
 			:components
 			((:file "package")
-			 (:file "store"      :depends-on ("package"))
-			 (:file "store-ht"   :depends-on ("store"))))
+			 (:file "api"        :depends-on ("package"))
+			 (:file "ht"         :depends-on ("api"))))
 	       (:module "feeder"
 			:components
 			((:file "package")
