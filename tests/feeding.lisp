@@ -1,3 +1,4 @@
 (in-package :org.kjerkreit.lingalyzer.tests)
 
-;;; There'll be something here sooner or later :)
+(defun feeder-test ()
+  (process-doc "/home/marius/Dropbox/Kode/cl/lingalyzer/test-data/de-bello-gallico-01-01-latin-library.txt"))

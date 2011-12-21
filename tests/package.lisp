@@ -2,6 +2,8 @@
 
 (defpackage #:org.kjerkreit.lingalyzer.tests
   (:nicknames la-t :LA-T)
-  (:use #:common-lisp
+  (:use #:cl
 	#:org.kjerkreit.lingalyzer.store
+	#:org.kjerkreit.lingalyzer.feeder
+	#:org.kjerkreit.lingalyzer.preprocessing))
   
