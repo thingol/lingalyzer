@@ -5,15 +5,15 @@
 
 The structure of the partial index:
 
-(length-of-doc
- (dhash (form0 form1 form2 form0 ...))
- (form0 dhash #(1 4))
- (form1 dhash #(2))
- (form2 dhash #(3)))"
+'(length-of-doc
+  (dhash (form0 form1 form2 form0 ...))
+  (form0 dhash #(1 4))
+  (form1 dhash #(2))
+  (form2 dhash #(3)))"
 
   (let ((indexed-doc)
 	(pos 0))
-    (dolist (wf word-forms)
+    (dolist (wf (convert-string-to-tokens word-forms))
       (incf pos)
       (let ((wf-found (assoc wf indexed-doc :test #'string=)))
 	(if wf-found
@@ -33,7 +33,8 @@ The structure of the partial index:
 (defun process-doc (path)
   "Add document and relevant meta data to document db. Returns nil if document alrady exists."
 
-  (let* ((metadata  (read-metadata            path))
+  (let* ((doc       (read-file path))
+	 (metadata  (car doc))
 	 (mdoc-name (cdr (car                 metadata)))
 	 (scribe    (cdr (cadddr              metadata)))
 	 (dhash     (md5sum-strings-to-string scribe mdoc-name)))
@@ -41,7 +42,7 @@ The structure of the partial index:
 	nil
 	(let* ((author      (cdr (cadr                metadata)))
 	       (mdhash      (md5sum-strings-to-string author mdoc-name)))
-	       (indexed-doc (index-document (read-file path) dhash))
+	       (indexed-doc (index-document (cdr doc) dhash))
 
 	  (if (exists-p author 'agent)
 	      (add-mdoc author mdhash)
@@ -79,21 +80,3 @@ The structure of the partial index:
 			     :hash      dhash)
 		 (cdr indexed-doc)))))
 
-(defun read-file (path)
-  "Read file from disk. Returns list of strings."
-
-  (flet ((file-string (path)
-	   "Sucks up an entire file from PATH into a freshly-allocated string, returning
-two values: the string and the number of bytes read. (shamelessly stolen from Cliki)"
-	   
-	   (with-open-file (s path)
-	     (let* ((len (file-length s))
-		    (data (make-string len)))
-	       (values data (read-sequence data s))))))
-    (format-string (file-string path))))
-
-(defun read-metadata (path)
-  "Read supplied metadata from file. The format is currently an sexp denoting an alist."
-
-  (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
-    (read metadata-file)))
