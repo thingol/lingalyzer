@@ -1,20 +1,31 @@
 (in-package :org.kjerkreit.lingalyzer.feeder)
 
-(defun read-file (path)
-  "Read file from disk. Returns list of strings."
+(defun read-file (path &optional (ignore-missing nil))
+  "Reads a file and its associated metadata from disk. Returns a cons the metadata alist and the
+  contents of the file as a string."
 
-  (flet ((file-string (path)
-	   "Sucks up an entire file from PATH into a freshly-allocated string, returning
-two values: the string and the number of bytes read. (shamelessly stolen from Cliki)"
-	   
-	   (with-open-file (s path)
-	     (let* ((len (file-length s))
-		    (data (make-string len)))
-	       (values data (read-sequence data s))))))
-    (format-string (file-string path))))
+  (let ((file  (probe-file path))
+	(mdata (probe-file (concatenate 'string path ".meta"))))
 
-(defun read-metadata (path)
-  "Read supplied metadata from file. The format is currently an sexp denoting an alist."
+    (unless ignore-missing
+      
+      (unless file
+	(error "No such file: ~S" path))
+  
+      (unless mdata
+	(error "No metadata associated with file: ~S" path)))
 
-  (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
-    (read metadata-file)))
+    (if (and ignore-missing (or (not file) (not mdata)))
+	nil
+	(let ((data))
+	  (with-open-file (s path)
+	    (setf data (make-string (file-length s)))
+	    (read-sequence data s))
+	  (with-open-file (s (concatenate 'string path ".meta"))
+	     
+	    (cons (read s) data))))))
+
+(defun read-files (files &optional (ignore-missing nil))
+  "Calls (read-file ...) on each file."
+
+  nil)

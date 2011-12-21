@@ -5,4 +5,6 @@
   (:use #:common-lisp
 	#:split-sequence
 	#:org.kjerkreit.utils)
-  (:export #:process-doc))
+  (:export #:read-file
+	   #:read-files
+	   #:read-dir))
