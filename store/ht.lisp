@@ -1,14 +1,16 @@
-(in-package :org.kjerkreit.lingalyzer.storage)
+(in-package :org.kjerkreit.lingalyzer.store)
 
 ;; DONE DB
 ;; __close
 ;; __drop
-;; __gc
 ;; __open
 ;;
 ;; Content
 ;; __add
 ;; __get
+;; __get-all
+;; __get-by
+;; __get-childless
 ;; __increase-wf-count
 ;; __remove
 ;; __update
@@ -16,16 +18,12 @@
 ;; DONE INDEX
 ;; __close
 ;; __drop
-;; __gc
 ;; __indexed-p
 ;; __open
 ;; __search
 
 ;; TODO DB
 ;; __gc
-;; __get-all
-;; __get-by
-;; __get-childless
 
 ;; TODO INDEX
 ;; __gc
@@ -58,7 +56,7 @@
 				:adjustable   t
 				:fill-pointer 0))))
 
-;;;; low level operations
+;;;; Store
 (defmethod __close ((store ht-db))
   (__drop store))
 
@@ -71,36 +69,58 @@
 (defmethod __drop ((store ht-index))
   (setf *index* nil))
 
-(defmethod __gc   ((store ht-db) delete))
+(defmethod __gc   ((store ht-db) delete)
+  (if delete
+      nil
+      (progn
+	)))
 
 (defmethod __gc   ((store ht-index) delete))
 
+;;;; Store: content - general
 
+(defmethod __add ((store ht-db) entity)
+  (setf (gethash (slot-value entity 'key) (slot-value db (type-of entity))) entity))
+
+(defmethod __remove ((store ht-db) type key)
+  (remhash key (slot-value db 'type)))
 
 ;;;; DB: content - general
-
-(defmethod __add ((db ht-db) entity key)
-  (setf (gethash key (slot-value db (type-of entity))) entity))
 
 (defmethod __get ((db ht-db) type key)
   (gethash key (slot-value db 'type)))
 
-(defmethod __get-all ((db ht-db)))
+(defmethod __get-all ((db ht-db))
+  (list (get-all-of-type db 'agent)
+	(get-all-of-type db 'doc)
+	(get-all-of-type db 'mdoc)
+	(get-all-of-type db 'wform)))
 
-(defmethod __get-by ((db ht-db) type slot value))
-
-(defmethod __remove ((db ht-db) type key)
-  (remhash key (slot-value db (build-symbol 'type)))
+(defmethod __get-by ((db ht-db) type slot value)
+  (loop for entry being the hash-values of (slot-value db type)
+       when (string= (slot-value entry slot) value)
+       collect entry))
   
 (defmethod __update ((db ht-db) entity key)
   (__add db entity key))
 
 ;;;; DB: content - specific
 
-(defmethod __get-childless ((db ht-db)))
+(defmethod __get-childless ((db ht-db))
+  (let ((agents (get-all-of-type db 'agent))
+	(docs   (get-all-of-type db 'doc))
+	(mdocs  (get-all-of-type db 'mdoc)))
+    (dolist (doc docs)
+      (let ((scribe (slot-value doc 'scribe)))
+      (setf agents (remove-if #'(lambda (x) (string= scribe (slot-value x 'name))) agents))))
+    (dolist (doc docs)
+      (let ((author (slot-value doc 'author)))
+      (setf agents (remove-if #'(lambda (x) (string= author (slot-value x 'name))) agents))))
+    agents))
+       
 
 (defmethod __increase-wf-count ((db ht-db) (form string))
-  (incf (gethash form (wform db))))
+  (incf (count (gethash form (wform db)))))
 
 ;;;; Index
 
@@ -119,3 +139,11 @@
 	 (slot-value index type))
     
     matches))
+
+;;;; Internal support functions
+
+(defmacro get-all-of-type (db type)
+  "Returns all agents in db."
+
+  `(loop for entity being the hash-values in (slot-value ,db ,type)
+       collect entity))

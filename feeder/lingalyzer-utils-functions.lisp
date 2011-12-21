@@ -1,35 +1,16 @@
 (in-package :org.kjerkreit.lingalyzer.utils)
 
 ;; TODO
-;; list all docs
-;;              - alphabetically 
-;;              - according to length
-;;              - number of versions
-;; list all authors
-;;              - alphabetically
-;;              - number of docs
-;; list all scribes
-;;              - alphabetically
-;;              - number of docs
-;; list all word forms
-;;              - alphabeticall
-;;              - number of docs
-;;              - number of occurences
-;; output statistics
-;;              - total
-;;                     - docs
-;;                     - authors
-;;                     - scribes
-;;                     - word forms
-;;              - longest doc
-;;              - most frequent word form
-;;              - most versions
-;;              - most prolific
-;;                             - author
-;;                             - scribe
-;;
 
 ;; low-level
+(defun make-index-entry (wf dhash pos)
+  "Make an index entry for a given word form."
+
+  (list
+   (list wf
+	 dhash
+	 (make-array 1 :element-type 'fixnum :initial-contents `(,pos) :adjustable t :fill-pointer 1))))
+
 (defun good-char-p (char)
   "Is it an alphanumeric or a space?"
 
@@ -46,7 +27,6 @@
        collect (char-downcase char) into good-chars
        finally (setf stripped-string (coerce good-chars 'string)))
     (split-sequence delim stripped-string :remove-empty-subseqs remove-empty-subseqs)))
-
 
 (defun read-file (path)
   "Read file from disk. Returns list of strings."
@@ -67,51 +47,70 @@ two values: the string and the number of bytes read. (shamelessly stolen from Cl
   (with-open-file (metadata-file (concatenate 'string path ".meta") :direction :input)
     (read metadata-file)))
 
-(defun index-document (word-forms doc-hash)
-  "Indexes a document. Adds word forms if new, otherwise increase count by one.
-Returns a list of references to the word-forms processed in the orderd received."
+(defun index-document (word-forms dhash)
+  "Indexes a document and returns a partial index.
+
+The structure of the partial index:
+
+((dhash length-of-doc (form0 form1 form2 form0 ...))
+ (form0 dhash #(1 4))
+ (form1 dhash #(2))
+ (form2 dhash #(3)))"
 
   (let ((indexed-doc)
-	(len 0))
+	(pos 0))
     (dolist (wf word-forms)
-      (incf len)
+      (incf pos)
       (let ((wf-found (assoc wf indexed-doc :test #'string=)))
 	(if wf-found
-	    (push len (cdr wf-found))
-	    (setf indexed-doc (append indexed-doc (list (list wf len)))))))
-    (append (list (list doc-hash len word-forms)) indexed-doc)))
+	    (vector-push-extend pos (caddr wf-found))
+	    (setf indexed-doc (append indexed-doc (make-index-entry wf dhash pos))))))
+    (append (list (list dhash len word-forms)) indexed-doc)))
   
 (defun process-doc (path)
-  "Add document and relevant meta data to document db. Returns nil if document alrady exists and an
-update has not been requested."
+  "Add document and relevant meta data to document db. Returns nil if document alrady exists."
 
-  (let* ((metadata   (read-metadata path))
-	 (mdoc-name  (cdr (car      metadata)))
-	 (scribe     (cdr (cadddr   metadata)))
-	 (doc-hash   (md5sum-string (concatenate 'string scribe mdoc-name))))
+  (let* ((metadata  (read-metadata            path))
+	 (mdoc-name (cdr (car                 metadata)))
+	 (scribe    (cdr (cadddr              metadata)))
+	 (dhash     (md5sum-strings-to-string scribe mdoc-name)))
     (if (exists-p doc-hash)
 	nil
-	(let* ((author     (cdr (cadr     metadata)))
-	       (mdoc-hash  (md5sum-string (concatenate 'string author mdoc-name)))
-	       (clean-text (read-file     path))
-	       (doc-len    (list-length   clean-text)))
+	(let* ((author      (cdr (cadr                metadata)))
+	       (mdhash      (md5sum-strings-to-string author mdoc-name)))
+	       (indexed-doc (read-file                path)))
 
-	  (unless (exists-p  author     'agent)
-	    (add (make-agent :name      author
-			     :authored  (list mdoc-hash))))
+	  (if (exists-p author 'agent)
+	      (add-mdoc author mdhash)
+	      (add (make-agent :name     author
+			       :authored (make-array 1
+						     :element-type     md5sum
+						     :initial-contents mdhash
+						     :adjustable       t
+						     :fill-pointer     1))))
     
-	  (unless (exists-p  mdoc-hash 'mdoc)
-	    (add (make-mdoc  :name      mdoc-name
-			     :author    author
-			     :genre     (cdr (caddr metadata))
-			     :docs      (list doc-hash)
-			     :hash      mdoc-hash)))
+	  (if (exists-p mdhash 'mdoc)
+	      (add-doc-to-mdoc mdhash dhash)
+	      (add (make-mdoc  :name     mdoc-name
+			       :author   author
+			       :genre    (cdr (caddr metadata))
+			       :docs     (make-array 1
+						     :element-type     md5sum
+						     :initial-contents dhash
+						     :adjustable       t
+						     :fill-pointer     1)
+			       :hash     mdhash)))
     
-	  (unless (exists-p  scribe     'agent)
-	    (add (make-agent :name      scribe
-			     :copied    (list doc-hash))))
+	  (if (exists-p scribe 'agent)
+	      (add-doc-to-scribe scribe dhash)
+	      (add (make-agent :name     scribe
+			       :copied   (make-array 1
+						     :element-type     md5sum
+						     :initial-contents dhash
+						     :adjustable       t
+						     :fill-pointer     1))))
 
-	  (add   (make-doc   :mdoc      mdoc-hash
+	  (add   (make-doc   :mdoc      mdhash
 			     :scribe    scribe
-			     :length    doc-len
-			     :hash      doc-hash))))))
+			     :length    (cadar indexed-doc)
+			     :hash      dhash)))))
