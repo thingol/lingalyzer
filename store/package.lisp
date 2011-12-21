@@ -2,11 +2,22 @@
 
 (defpackage #:org.kjerkreit.lingalyzer.store
   (:nicknames la-s :LA-S)
-  (:use #:common-lisp
-	#:cl-sqlite
+  (:use #:cl
 	#:org.kjerkreit.ngram)
   (:export #:add
+	   #:close
+	   #:drop
+	   #:exists-p
+	   #:gc
 	   #:get
+	   #:get-all
+	   #:get-by
+	   #:get-childless
+	   #:get-orphans
+	   #:increase-wf-count
+	   #:indexed-p
+	   #:new-store
+	   #:open
 	   #:remove
-	   #:update
-	   #:search))
+	   #:search
+	   #:update))

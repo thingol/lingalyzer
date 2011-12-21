@@ -1,43 +1,23 @@
 (in-package :org.kjerkreit.lingalyzer.store)
 
-;; DONE DB
-;; __close
-;; __drop
-;; __open
-;;
-;; Content
-;; __add
-;; __get
-;; __get-all
-;; __get-by
-;; __get-childless
-;; __increase-wf-count
-;; __remove
-;; __update
-
-;; DONE INDEX
-;; __close
-;; __drop
-;; __indexed-p
-;; __open
-;; __search
-
 ;; TODO DB
 ;; __gc
 
 ;; TODO INDEX
 ;; __gc
-;; __merge
+;; __add
 
-
-;;;; Class definition for the memory only db and index types
-
+;;; Datatypes
+;;;
+;;;; DB
 (defclass ht-db (lingalyzer-db)
   ((agent :initform (make-hash-table :test 'equal))
    (doc   :initform (make-hash-table :test 'equal))
    (mdoc  :initform (make-hash-table :test 'equal))
-   (wform :initform (make-hash-table :test 'equal))))
+   (wform :initform (make-hash-table :test 'equal)))
+  (:documentation "Memory only db."))
 
+;;;; Index
 (defclass ht-index (lingalyzer-index)
   ((agent :initform (make-array 200
 				:element-type 'cons
@@ -54,8 +34,11 @@
    (wform :initform (make-array 5000
 				:element-type 'cons
 				:adjustable   t
-				:fill-pointer 0))))
+				:fill-pointer 0)))
+  (:documentation "Memory only index."))
 
+;;; API
+;;;
 ;;;; Store
 (defmethod __close ((store ht-db))
   (__drop store))
@@ -79,8 +62,21 @@
 
 ;;;; Store: content - general
 
-(defmethod __add ((store ht-db) entity)
+(defmethod __add ((store ht-db) (entity lingalyzer-entity))
   (setf (gethash (slot-value entity 'key) (slot-value db (type-of entity))) entity))
+
+(defmethod __add ((store ht-index) (entity lingalyzer-entity))
+
+(defmethod __add ((store ht-index) (entity indexed-doc))
+  (vector-push-extend (car indexed-doc) (slot-value store 'doc))
+  
+  (loop for wf being the elements of (cdr indexed-doc)
+       when 
+    (__indexed-p 
+    
+  
+  
+  
 
 (defmethod __remove ((store ht-db) type key)
   (remhash key (slot-value db 'type)))
