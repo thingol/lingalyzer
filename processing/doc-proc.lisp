@@ -5,7 +5,8 @@
 
 The structure of the partial index:
 
-((dhash length-of-doc (form0 form1 form2 form0 ...))
+(length-of-doc
+ (dhash (form0 form1 form2 form0 ...))
  (form0 dhash #(1 4))
  (form1 dhash #(2))
  (form2 dhash #(3)))"
@@ -18,7 +19,7 @@ The structure of the partial index:
 	(if wf-found
 	    (vector-push-extend pos (caddr wf-found))
 	    (setf indexed-doc (append indexed-doc (make-index-entry wf dhash pos))))))
-    (append (list (list dhash len word-forms)) indexed-doc)))
+    (append (list pos (list dhash word-forms)) indexed-doc)))
 
 (defun make-index-entry (wf dhash pos)
   "Make an index entry for a given word form."
@@ -40,7 +41,7 @@ The structure of the partial index:
 	nil
 	(let* ((author      (cdr (cadr                metadata)))
 	       (mdhash      (md5sum-strings-to-string author mdoc-name)))
-	       (indexed-doc (read-file                path)))
+	       (indexed-doc (index-document (read-file path) dhash))
 
 	  (if (exists-p author 'agent)
 	      (add-mdoc author mdhash)
@@ -74,8 +75,9 @@ The structure of the partial index:
 
 	  (add   (make-doc   :mdoc      mdhash
 			     :scribe    scribe
-			     :length    (cadar indexed-doc)
-			     :hash      dhash)))))
+			     :length    (car indexed-doc)
+			     :hash      dhash)
+		 (cdr indexed-doc)))))
 
 (defun read-file (path)
   "Read file from disk. Returns list of strings."
