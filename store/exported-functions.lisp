@@ -5,58 +5,69 @@
 (defun new-store (name &optional (dtype 'ht-db) (itype 'ht-index))
   "Create a new database and index of the desired types."
 
+  (print name)
+  
   (and (setf *db*    (make-instance dtype))
        (setf *index* (make-instance itype))))
 
 ;;;; Store
 
-(defun close ()
+(defun close-store ()
   "Closes the store."
   
-  (__close *db*)
-  (__close *index))
+  (__close-store *db*)
+  (__close-store *index*))
 
 (defun drop ()
   "Drops the currently open store."
   
   (__drop *db*)
-  (__drop *index))
+  (__drop *index*))
 
 (defun gc (&optional (delete nil))
   "Marks orphaned entities as such, or removes them."
 
-  (and (__gc *db*     delete) (dirty-db    *db*    nil)
-       (__gc *index*)         (dirty-index *index* nil)))
+  (and
+   (or (not (dirty *db*))
+       (and
+	(__gc  *db* delete)
+	(setf (dirty *db*) nil)))
+   (or (not (dirty *index*))
+       (and
+	(__gc  *index* delete)
+	(setf (dirty *index*) nil)))))
 
-(defun open (name)
+(defun open-store (name)
   "Open a store. Close the currently open store (if one exists)."
 
+  (print name)
+  
   (and (if *db*
-	   (__close *db*)
+	   (__close-store *db*)
 	   t)
        (if *index*
-	   (__close *index*)
+	   (__close-store *index*)
 	   t)
-       (__open name)))
+       '(__open-store name)))
 
 ;;;; Store: content - general
 
-(defun add (entity &optional (partial-index nil))
+(defun add-entity (entity &optional (partial-index nil))
   "Add an entity to the store. Agents and meta documents are indexed using their names. Documents
 are stored in a forward index, and word forms in a inverse index."
 
-  (__add *db* entity)
-  (if partial-index
-      (__add *index* partial-index)
-      (__add *index* entity)))
+  (__add-entity *db* entity)
+  (when partial-index
+      (__add-entity *index* partial-index))
+      (__add-entity *index* entity))
 
-(defun remove (key type)
+(defun remove-entity (key type)
   "Remove an entity from the store."
 
-  (and (__remove *db* key type)
-       (__remove *index* key type)
-       (dirty-db *store* t)
-       (dirty-index *store* t)))
+  (and (__remove-entity *db* key type)
+       (__remove-entity *index* key type)
+       (setf (dirty *db*) t)
+       (setf (dirty *index*) t)))
 
 ;;;; DB: content - general
 
@@ -64,12 +75,12 @@ are stored in a forward index, and word forms in a inverse index."
 (defun exists-p (key &optional (type nil))
   "Synonym for (get ...)."
 
-  (__get *db* key type))
+  (__get-one *db* key type))
 
-(defun get (key &optional (type nil))
+(defun get-one (key &optional (type nil))
   "Get all matching entities from the database."
 
-  (__get *db* key type))
+  (__get-one *db* key type))
 
 (defun get-all ()
   "Get all entities in the entire db."
@@ -81,30 +92,28 @@ are stored in a forward index, and word forms in a inverse index."
 
   (__get-by *db* type slot value))
 
-
-
 (defun update (entity)
   "Update an entity in the database."
   
-  (and (db-dirty *db*)
+  (and (setf (dirty *db*) t)
        (__update *db* entity)))
-
 
 ;;;; DB: content - specific
 
 (defun get-childless ()
   "Return a list of all agents with no meta documents or documents."
 
-  (when (db-dirty-p *db*)
-    (gc-db))
+
+  (unless (gc)
+    (error "Garbage collection failed! The integrity of the store has been compromised!"))
 
   (__get-childless *db*))
   
 (defun get-orphans ()
   "Return all orphaned meta documents and documents."
 
-  (when (db-dirty-p *db*)
-    (gc-db))
+  (unless (gc)
+    (error "Garbage collection failed! The integrity of the store has been compromised!"))
 
   (cons (__get-by *db* 'mdoc :author "John Doe")
 	(__get-by *db* 'doc  :scribe "John Doe")))
@@ -122,7 +131,7 @@ are stored in a forward index, and word forms in a inverse index."
 
   (__indexed-p *index* key type))
 
-(defun search (key &optional (type nil))
-  "Search the entire index or for a specific type for a matching key."
+(defun find-entities (query &optional (type nil) (threshold 0.65))
+  "Search the entire index or a table for a matching key."
 
-  (__search *index* query type))
+  (__find-entities *index* query type threshold))

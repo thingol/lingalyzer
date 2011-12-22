@@ -6,21 +6,24 @@
   :version "0.0.4"
   :author "Marius Hårstad Kjerkreit"
   :license "BSD-style"
-  :depends-on (split-sequence
-	       org.kjerkreit.utils
-	       org.kjerkreit.utils.ngram)
+  :depends-on (:split-sequence
+	       :org.kjerkreit.utils
+	       :org.kjerkreit.utils.ngram)
   :components ((:static-file "LICENSE")
+	       (:file "package")
 	       (:module "feeder"
 			:components
 			((:file "package")
 			 (:file "file" :depends-on ("package"))
-			 (:file "dir"  :depends-on ("file"))))
+			 (:file "dir"  :depends-on ("file")))
+			:depends-on ("package"))
 	       (:module "preprocessing"
 			:components
 			((:file "package")
 			 (:file "filter"   :depends-on ("package"))
 			 (:file "doc-proc" :depends-on ("filter")))
-			:depends-on ("store"
+			:depends-on ("package"
+				     "store"
 				     "feeder"))
 	       (:module "store"
 			:components
@@ -31,11 +34,13 @@
 			 (:file "exported-functions" :depends-on ("api"
 								  "store-internals"))
 			 (:file "ht"                 :depends-on ("api"
-							          "datatypes"))))
+							          "datatypes")))
+			:depends-on ("package"))
 	       (:module "tests"
 			:components
 			((:file "package")
 			 (:file "feeding"    :depends-on ("package")))
-			:depends-on ("store"
+			:depends-on ("package"
+				     "store"
 				     "feeder"
 				     "preprocessing"))))

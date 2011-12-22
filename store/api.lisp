@@ -2,29 +2,29 @@
 
 ;;;; Store
 
-(defgeneric __close (store))
+(defgeneric __close-store (store))
 
 (defgeneric __drop (store))
 
 (defgeneric __gc (store rem-ent))
 
-(defgeneric __open (dtype itype name))
+(defgeneric __open-store (type name))
 
 ;;;; Store: content - general
 
-(defgeneric __add (store data))
+(defgeneric __add-entity (store entity))
 
-(defgeneric __remove (store type key))
+(defgeneric __remove-entity (store type key))
 
 ;;;; DB: content - general 
 
-(defgeneric __get (db type key))
+(defgeneric __get-one (db type key))
 
 (defgeneric __get-all (db))
 
 (defgeneric __get-by (db type slot value))
 
-(defgeneric __update (db entity key))
+(defgeneric __update (db entity))
 
 ;;;; DB: content - specific
 
@@ -49,4 +49,4 @@
 (defgeneric __sync-with-db (index db))
 |#
 
-(defgeneric __search (index type key))
+(defgeneric __find-entities (index type key threshold))

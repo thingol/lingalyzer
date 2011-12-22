@@ -10,8 +10,8 @@
 		      &optional (filter #'good-char-p) (delim #\Space) (rempty t))
   "Strip text of all unwanted characters, convert to lowercase and tokenize."
 
-  (loop for char across text
-     when (filter char)
+  (loop for char across string
+     when (funcall filter char)
      collect (char-downcase char) into good-chars
      finally (split-sequence delim
 			     (coerce good-chars 'string)

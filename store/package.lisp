@@ -3,11 +3,13 @@
 (defpackage #:org.kjerkreit.lingalyzer.store
   (:nicknames la-s :LA-S)
   (:use #:cl
-	#:org.kjerkreit.ngram)
-  (:export #:add
-	   #:close
+	#:org.kjerkreit.utils
+	#:org.kjerkreit.utils.ngram)
+  (:export #:add-entity
+	   #:close-stpre
 	   #:drop
 	   #:exists-p
+	   #:find-entities
 	   #:gc
 	   #:get
 	   #:get-all
@@ -17,7 +19,6 @@
 	   #:increase-wf-count
 	   #:indexed-p
 	   #:new-store
-	   #:open
-	   #:remove
-	   #:search
+	   #:open-store
+	   #:remove-entity
 	   #:update))

@@ -28,4 +28,5 @@
 (defun read-files (files &optional (ignore-missing nil))
   "Calls (read-file ...) on each file."
 
-  nil)
+  (type-of files)
+  ignore-missing)

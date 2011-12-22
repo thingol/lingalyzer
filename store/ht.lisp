@@ -5,7 +5,16 @@
 
 ;; TODO INDEX
 ;; __gc
-;; __add
+;; __add-entity
+;; __remove-entity
+
+;;;; Internal support functions and macros
+
+(defmacro get-all-of-type (db type)
+  "Returns all agents in db."
+
+  `(loop for entity being the hash-values in (slot-value ,db ,type)
+       collect entity))
 
 ;;; Datatypes
 ;;;
@@ -40,10 +49,10 @@
 ;;; API
 ;;;
 ;;;; Store
-(defmethod __close ((store ht-db))
+(defmethod __close-store ((store ht-db))
   (__drop store))
 
-(defmethod __close ((store ht-index))
+(defmethod __close-store ((store ht-index))
   (__drop store))
 
 (defmethod __drop ((store ht-db))
@@ -55,35 +64,43 @@
 (defmethod __gc   ((store ht-db) delete)
   (if delete
       nil
-      (progn
-	)))
+      t))
 
-(defmethod __gc   ((store ht-index) delete))
+(defmethod __gc   ((store ht-index) delete)
+  (if delete
+      nil
+      t))
 
 ;;;; Store: content - general
 
-(defmethod __add ((store ht-db) (entity lingalyzer-entity))
-  (setf (gethash (slot-value entity 'key) (slot-value db (type-of entity))) entity))
+(defmethod __add-entity ((store ht-db) (entity lingalyzer-entity))
+  (setf (gethash (slot-value entity 'key) (slot-value store (type-of entity))) entity))
 
-(defmethod __add ((store ht-index) (entity lingalyzer-entity))
+(defmethod __add-entity ((store ht-index) (entity lingalyzer-entity))
+  t)
 
-(defmethod __add ((store ht-index) (entity indexed-doc))
-  (vector-push-extend (car indexed-doc) (slot-value store 'doc))
-  
-  (loop for wf being the elements of (cdr indexed-doc)
-       when 
-    (__indexed-p 
-    
-  
-  
-  
+(defmethod __add-entity ((store ht-index) (entity indexed-doc))
+  (vector-push-extend (car entity) (slot-value store 'doc))
 
-(defmethod __remove ((store ht-db) type key)
-  (remhash key (slot-value db 'type)))
+
+  (dolist (wf (cdr entity))
+    (let ((indexed (__indexed-p store 'wform (car wf))))
+      (if indexed
+	  t
+          t)))
+	
+  '(loop for wf being the elements of (cdr entity)
+	when (__indexed-p store 'wform (car wf))
+	
+	
+	))
+
+(defmethod __remove-entity ((store ht-db) type key)
+  (remhash key (slot-value store 'type)))
 
 ;;;; DB: content - general
 
-(defmethod __get ((db ht-db) type key)
+(defmethod __get-one ((db ht-db) type key)
   (gethash key (slot-value db 'type)))
 
 (defmethod __get-all ((db ht-db))
@@ -97,8 +114,8 @@
        when (string= (slot-value entry slot) value)
        collect entry))
   
-(defmethod __update ((db ht-db) entity key)
-  (__add db entity key))
+(defmethod __update ((db ht-db) entity)
+  (__add-entity db entity))
 
 ;;;; DB: content - specific
 
@@ -109,14 +126,14 @@
     (dolist (doc docs)
       (let ((scribe (slot-value doc 'scribe)))
       (setf agents (remove-if #'(lambda (x) (string= scribe (slot-value x 'name))) agents))))
-    (dolist (doc docs)
-      (let ((author (slot-value doc 'author)))
+    (dolist (mdoc mdocs)
+      (let ((author (slot-value mdoc 'author)))
       (setf agents (remove-if #'(lambda (x) (string= author (slot-value x 'name))) agents))))
     agents))
        
 
 (defmethod __increase-wf-count ((db ht-db) (form string))
-  (incf (count (gethash form (wform db)))))
+  (incf (occurred (gethash form (slot-value db 'wform)))))
 
 ;;;; Index
 
@@ -125,7 +142,7 @@
        until (string= (car entry) key)
        finally (return entry)))
 
-(defmethod __search ((index ht-index) type query threshold)
+(defmethod __find-entities ((index ht-index) type query threshold)
   (let ((matches)
 	(qng (gen-n-grams query)))
     
@@ -135,11 +152,3 @@
 	 (slot-value index type))
     
     matches))
-
-;;;; Internal support functions
-
-(defmacro get-all-of-type (db type)
-  "Returns all agents in db."
-
-  `(loop for entity being the hash-values in (slot-value ,db ,type)
-       collect entity))

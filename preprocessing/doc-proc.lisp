@@ -5,21 +5,20 @@
 
 The structure of the partial index:
 
-'(length-of-doc
-  (dhash (form0 form1 form2 form0 ...))
-  (form0 dhash #(1 4))
-  (form1 dhash #(2))
-  (form2 dhash #(3)))"
+'(length-of-doc . indexed-doc)"
 
-  (let ((indexed-doc)
+  (let ((inverse)
 	(pos 0))
     (dolist (wf (convert-string-to-tokens word-forms))
       (incf pos)
-      (let ((wf-found (assoc wf indexed-doc :test #'string=)))
+      (let ((wf-found (assoc wf inverse :test #'string=)))
 	(if wf-found
 	    (vector-push-extend pos (caddr wf-found))
-	    (setf indexed-doc (append indexed-doc (make-index-entry wf dhash pos))))))
-    (append (list pos (list dhash word-forms)) indexed-doc)))
+	    (push (make-index-entry wf dhash pos) inverse))))
+    (append (list pos
+		  (make-instance 'indexed-doc
+				 :forward (list dhash word-forms)
+				 :inverse inverse)))))
 
 (defun make-index-entry (wf dhash pos)
   "Make an index entry for a given word form."
@@ -38,45 +37,46 @@ The structure of the partial index:
 	 (mdoc-name (cdr (car                 metadata)))
 	 (scribe    (cdr (cadddr              metadata)))
 	 (dhash     (md5sum-strings-to-string scribe mdoc-name)))
-    (if (exists-p doc-hash)
+    (if (exists-p dhash)
 	nil
 	(let* ((author      (cdr (cadr                metadata)))
-	       (mdhash      (md5sum-strings-to-string author mdoc-name)))
-	       (indexed-doc (index-document (cdr doc) dhash))
+	       (mdhash      (md5sum-strings-to-string author mdoc-name))
+	       (indexed-doc (index-document (cdr doc) dhash)))
 
 	  (if (exists-p author 'agent)
-	      (add-mdoc author mdhash)
-	      (add (make-agent :name     author
-			       :authored (make-array 1
-						     :element-type     md5sum
-						     :initial-contents mdhash
-						     :adjustable       t
-						     :fill-pointer     1))))
+	      (add-entity (make-instance 'agent
+					 :name     author
+					 :authored (make-array 1
+							       :element-type     'md5sum
+							       :initial-contents mdhash
+							       :adjustable       t
+							       :fill-pointer     1))))
     
 	  (if (exists-p mdhash 'mdoc)
-	      (add-doc-to-mdoc mdhash dhash)
-	      (add (make-mdoc  :name     mdoc-name
-			       :author   author
-			       :genre    (cdr (caddr metadata))
-			       :docs     (make-array 1
-						     :element-type     md5sum
-						     :initial-contents dhash
-						     :adjustable       t
-						     :fill-pointer     1)
-			       :hash     mdhash)))
+	      (add-entity (make-instance 'mdoc
+					 :name     mdoc-name
+					 :author   author
+					 :genre    (cdr (caddr metadata))
+					 :docs     (make-array 1
+							       :element-type     'md5sum
+							       :initial-contents dhash
+							       :adjustable       t
+							       :fill-pointer     1)
+					 :hash     mdhash)))
     
 	  (if (exists-p scribe 'agent)
-	      (add-doc-to-scribe scribe dhash)
-	      (add (make-agent :name     scribe
-			       :copied   (make-array 1
-						     :element-type     md5sum
-						     :initial-contents dhash
-						     :adjustable       t
-						     :fill-pointer     1))))
+	      (add-entity (make-instance 'agent
+					 :name     scribe
+					 :copied   (make-array 1
+							       :element-type     'md5sum
+							       :initial-contents dhash
+							       :adjustable       t
+							       :fill-pointer     1))))
 
-	  (add   (make-doc   :mdoc      mdhash
-			     :scribe    scribe
-			     :length    (car indexed-doc)
-			     :hash      dhash)
-		 (cdr indexed-doc)))))
+	  (add-entity (make-instance 'doc
+				     :mdoc      mdhash
+				     :scribe    scribe
+				     :len       (car indexed-doc)
+				     :hash      dhash)
+		      (cdr indexed-doc))))))
 

@@ -1,48 +1,38 @@
 (in-package :org.kjerkreit.lingalyzer.store)
 
-(defun indexed-doc-p (obj)
-  "Does this object conform to my idea of an indexed document?"
+(defun forward-index-p (obj)
+  (and (typep (car obj) 'md5sum)
+       (typep (cdr obj) 'cons)))
 
-  (and (type-of (car obj) 'fixnum)
-       (type-of (caadr obj) 'md5sum)
-       (eql (list-length (caddr obj)) 3)))
+(deftype forward-index ()
+  `(satisfies forward-index-p))
 
-(deftype indexed-doc ()
-  "Implemented as a SATISFIES type because I don't know any better :)"
-  `(and list
-       (satisfies indexed-doc-p)))
-       
+(defun inverse-index-p (obj)
+  (and (typep (cadr obj) 'md5sum)
+       (typep (cdr obj) 'array)))
+
+(deftype inverse-index ()
+  `(satisfies inverse-index-p))
 
 (defclass lingalyzer-db ()
   ((version :reader     version
 	    :initform   1
 	    :type       fixnum
-	    :allocation :class))
+	    :allocation :class)
+   (state   :accessor   dirty
+	    :initform   nil
+	    :type       symbol))
   (:documentation "Toplevel db class."))
 
 (defclass lingalyzer-index ()
   ((version :reader     version
 	    :initform   1
 	    :type       fixnum
-	    :allocation :class))
+	    :allocation :class)
+   (state   :accessor   dirty
+	    :initform   nil
+	    :type       symbol))
   (:documentation "Toplevel index class."))
-
-(defclass lingalyzer-store ()
-  ((name   :accessor name
-	   :initarg  :name
-	   :initform "Unnamed"
-	   :type     'string)
-   (db     :reader   db
-	   :type     'lingalyzer-db)
-   (index  :reader   index
-	   :type     'lingalyzer-index)
-   (dstate :reader   db-dirty-p
-	   :writer   db-dirty
-	   :initform nil)
-   (istate :reader   index-dirty-p
-	   :writer   index-dirty
-	   :initform nil))
-  (:documentation "Toplevel store class."))
 
 (defclass lingalyzer-entity ()
   ((version :reader   version
@@ -72,13 +62,24 @@
    (scribe :reader  scribe
 	   :initarg :scribe
 	   :type    string)
-   (length :reader  length
-	   :initarg :length
+   (len    :reader  len
+	   :initarg :len
 	   :type    fixnum)
    (key    :reader  hash
 	   :initarg :hash
 	   :type    md5sum))
   (:documentation "Documents, an actual version of the text, of which multipe make up an mdoc."))
+
+(defclass indexed-doc (linglyzer-entity)
+  ((forward :reader  forward
+	    :initarg forward
+	    :type    forward-index
+	    :documentation "Document to word forms.")
+   (inverse :reader  inverse
+	    :initarg inverse
+	    :type    inverse-index
+	    :documentation "Word forms to position in document"))
+  (:documentation "An indexed document ready to be merge into the index proper."))
 
 (defclass mdoc (lingalyzer-entity)
   ((key    :reader   name
@@ -100,10 +101,10 @@
   (:documentation "Meta documents, container for copies of a document."))
 
 (defclass word-form (lingalyzer-entity)
-  ((key   :reader   form
-	  :initarg  :form
-	  :type     string)
-   (count :reader   count
-	  :initform 1
-	  :type     fixnum))
+  ((key        :reader   form
+	       :initarg  :form
+	       :type     string)
+   (occurences :accessor occurred
+	       :initform 1
+	       :type     fixnum))
   (:documentation "Word forms, all forms are stored separately."))
