@@ -1,5 +1,8 @@
 (in-package :org.kjerkreit.lingalyzer.store)
 
+(declaim (optimize (debug 3) (safety 3) (speed 0) (space 0)))
+;(declaim (optimize (debug 0) (safety 0) (speed 3) (space 0)))
+
 (defun forward-index-p (obj)
   (and (typep (car obj) 'md5sum)
        (typep (cdr obj) 'cons)))
@@ -8,8 +11,8 @@
   `(satisfies forward-index-p))
 
 (defun inverse-index-p (obj)
-  (and (typep (cadr obj) 'md5sum)
-       (typep (cdr obj) 'array)))
+  (and (typep (caadar obj) 'md5sum)
+       (typep (car (cdadar obj)) 'array)))
 
 (deftype inverse-index ()
   `(satisfies inverse-index-p))
@@ -70,13 +73,14 @@
 	   :type    md5sum))
   (:documentation "Documents, an actual version of the text, of which multipe make up an mdoc."))
 
-(defclass indexed-doc (linglyzer-entity)
+
+(defclass doc-index (lingalyzer-entity)
   ((forward :reader  forward
-	    :initarg forward
+	    :initarg :forward
 	    :type    forward-index
 	    :documentation "Document to word forms.")
    (inverse :reader  inverse
-	    :initarg inverse
+	    :initarg :inverse
 	    :type    inverse-index
 	    :documentation "Word forms to position in document"))
   (:documentation "An indexed document ready to be merge into the index proper."))
@@ -94,17 +98,17 @@
 	   :type     string)
    (docs   :accessor docs
 	   :initarg  :docs
-	   :type     (array 'md5dum))
+	   :type     (array md5sum))
    (hash   :reader   hash
 	   :initarg  :hash
 	   :type     md5sum))
   (:documentation "Meta documents, container for copies of a document."))
 
 (defclass word-form (lingalyzer-entity)
-  ((key        :reader   form
-	       :initarg  :form
-	       :type     string)
-   (occurences :accessor occurred
-	       :initform 1
-	       :type     fixnum))
+  ((key         :reader   form
+	        :initarg  :form
+	        :type     string)
+   (occurrences :accessor occurred
+	        :initform 0
+	        :type     fixnum))
   (:documentation "Word forms, all forms are stored separately."))

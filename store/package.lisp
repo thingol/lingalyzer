@@ -21,4 +21,14 @@
 	   #:new-store
 	   #:open-store
 	   #:remove-entity
-	   #:update))
+	   #:update
+	   ;;
+	   #:ht-db
+	   #:ht-index
+	   ;;
+	   #:agent
+	   #:doc
+	   #:doc-index
+	   #:mdoc
+	   #:word-form))
+

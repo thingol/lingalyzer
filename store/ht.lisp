@@ -8,6 +8,9 @@
 ;; __add-entity
 ;; __remove-entity
 
+(declaim (optimize (debug 3) (safety 3) (speed 0) (space 0)))
+;(declaim (optimize (debug 0) (safety 0) (speed 3) (space 0)))
+
 ;;;; Internal support functions and macros
 
 (defmacro get-all-of-type (db type)
@@ -20,30 +23,43 @@
 ;;;
 ;;;; DB
 (defclass ht-db (lingalyzer-db)
-  ((agent :initform (make-hash-table :test 'equal))
-   (doc   :initform (make-hash-table :test 'equal))
-   (mdoc  :initform (make-hash-table :test 'equal))
-   (wform :initform (make-hash-table :test 'equal)))
+  ((agent     :initform (make-hash-table :test 'equal)
+	      :type     hash-table)
+   (doc       :initform (make-hash-table :test 'equal)
+	      :type     hash-table)
+   (mdoc      :initform (make-hash-table :test 'equal)
+	      :type     hash-table)
+   (word-form :initform (make-hash-table :test 'equal)
+	      :type     hash-table))
   (:documentation "Memory only db."))
 
 ;;;; Index
 (defclass ht-index (lingalyzer-index)
-  ((agent :initform (make-array 200
-				:element-type 'cons
-				:adjustable   t
-				:fill-pointer 0))
-   (doc   :initform (make-array 150
-				:element-type 'cons
-				:adjustable   t
-				:fill-pointer 0))
-   (mdoc  :initform (make-array 150
-				:element-type 'cons
-				:adjustable   t
-				:fill-pointer 0))
-   (wform :initform (make-array 5000
-				:element-type 'cons
-				:adjustable   t
-				:fill-pointer 0)))
+  ((agent     :initform (make-array 200
+				    :element-type 'cons
+				    :adjustable   t
+				    :fill-pointer 0)
+	      :type     (array cons))
+   (doc       :initform (make-array 150
+				    :element-type 'cons
+				    :adjustable   t
+				    :fill-pointer 0)
+	      :type     (array cons))
+   (mdoc      :initform (make-array 150
+				    :element-type 'cons
+				    :adjustable   t
+				    :fill-pointer 0)
+	      :type     (array cons))
+   (word-form :initform (make-array 5000
+				    :element-type 'cons
+				    :adjustable   t
+				    :fill-pointer 0)
+	      :type     (array cons))
+   (wf-fuzzy  :initform (make-array 5000
+				    :element-type 'cons
+				    :adjustable   t
+				    :fill-pointer 0)
+	      :type     (array cons)))
   (:documentation "Memory only index."))
 
 ;;; API
@@ -56,10 +72,10 @@
   (__drop store))
 
 (defmethod __drop ((store ht-db))
-  (setf *db* nil))
+  (setf store nil))
 
 (defmethod __drop ((store ht-index))
-  (setf *index* nil))
+  (setf store nil))
 
 (defmethod __gc   ((store ht-db) delete)
   (if delete
@@ -77,37 +93,45 @@
   (setf (gethash (slot-value entity 'key) (slot-value store (type-of entity))) entity))
 
 (defmethod __add-entity ((store ht-index) (entity lingalyzer-entity))
-  t)
+  (let ((key (slot-value entity 'key)))
+    (vector-push-extend (cons (gen-n-grams `(,key)) key) (slot-value store (type-of entity)))))
 
-(defmethod __add-entity ((store ht-index) (entity indexed-doc))
-  (vector-push-extend (car entity) (slot-value store 'doc))
+(defmethod __add-entity ((store ht-index) (entity word-form))
+  (let ((key (slot-value entity 'key)))
+    (vector-push-extend (list key) (slot-value store 'word-form))
+    (vector-push-extend (cons (gen-n-grams `(,key)) key) (slot-value store 'wf-fuzzy))))
 
+(defmethod __add-entity ((store ht-index) (entity doc-index))
+  (vector-push-extend (forward entity) (slot-value store 'doc))
 
-  (dolist (wf (cdr entity))
-    (let ((indexed (__indexed-p store 'wform (car wf))))
-      (if indexed
-	  t
-          t)))
+  (dolist (wf (inverse entity))
+	  (push (cdr wf) (cdr (__indexed-p store 'word-form (car wf))))))
+
 	
-  '(loop for wf being the elements of (cdr entity)
-	when (__indexed-p store 'wform (car wf))
+#|
+
+Not sure how to do this with loop...
+
+   '(loop for wf being the elements of (cdr entity)
+	when (__indexed-p store 'word-form (car wf))
 	
 	
 	))
+|#
 
 (defmethod __remove-entity ((store ht-db) type key)
-  (remhash key (slot-value store 'type)))
+  (remhash key (slot-value store type)))
 
 ;;;; DB: content - general
 
-(defmethod __get-one ((db ht-db) type key)
-  (gethash key (slot-value db 'type)))
+(defmethod __get-one ((db ht-db) key type)
+  (gethash key (slot-value db type)))
 
 (defmethod __get-all ((db ht-db))
   (list (get-all-of-type db 'agent)
 	(get-all-of-type db 'doc)
 	(get-all-of-type db 'mdoc)
-	(get-all-of-type db 'wform)))
+	(get-all-of-type db 'word-form)))
 
 (defmethod __get-by ((db ht-db) type slot value)
   (loop for entry being the hash-values of (slot-value db type)
@@ -132,15 +156,19 @@
     agents))
        
 
-(defmethod __increase-wf-count ((db ht-db) (form string))
-  (incf (occurred (gethash form (slot-value db 'wform)))))
+(defmethod __increase-wf-count ((db ht-db) (form string) (delta fixnum))
+  (incf (occurred (gethash form (slot-value db 'word-form))) delta))
 
 ;;;; Index
 
 (defmethod __indexed-p ((index ht-index) type key)
-  (loop for entry being the elements of (slot-value index type)
-       until (string= (car entry) key)
-       finally (return entry)))
+  (if (eq type 'word-form)
+      (loop for entry across (slot-value index 'word-form)
+	 when (string= (car entry) key)
+	 return entry)
+      (loop for entry across (slot-value index type)
+	 when (string= (cadar entry) key)
+	 return entry)))
 
 (defmethod __find-entities ((index ht-index) type query threshold)
   (let ((matches)

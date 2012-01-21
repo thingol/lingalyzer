@@ -28,13 +28,13 @@
 	       (:module "store"
 			:components
 			((:file "package")
-			 (:file "api"                :depends-on ("package"))
-			 (:file "datatypes"          :depends-on ("package"))
-			 (:file "store-internals"    :depends-on ("package"))
-			 (:file "exported-functions" :depends-on ("api"
-								  "store-internals"))
-			 (:file "ht"                 :depends-on ("api"
-							          "datatypes")))
+			 (:file "generics"        :depends-on ("package"))
+			 (:file "datatypes"       :depends-on ("package"))
+			 (:file "store-internals" :depends-on ("package"))
+			 (:file "api"             :depends-on ("generics"
+							       "store-internals"))
+			 (:file "ht"              :depends-on ("generics"
+							       "datatypes")))
 			:depends-on ("package"))
 	       (:module "tests"
 			:components
