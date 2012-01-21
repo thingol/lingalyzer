@@ -5,5 +5,7 @@
   (:use #:cl
 	#:org.kjerkreit.lingalyzer.store
 	#:org.kjerkreit.lingalyzer.feeder
-	#:org.kjerkreit.lingalyzer.preprocessing))
+	#:org.kjerkreit.lingalyzer.preprocessing)
+  (:export #:feeder-test))
+
   
