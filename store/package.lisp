@@ -11,10 +11,10 @@
 	   #:exists-p
 	   #:find-entities
 	   #:gc
-	   #:get
 	   #:get-all
 	   #:get-by
 	   #:get-childless
+	   #:get-one
 	   #:get-orphans
 	   #:increase-wf-count
 	   #:indexed-p

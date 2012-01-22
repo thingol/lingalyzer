@@ -5,8 +5,6 @@
 
 ;; TODO INDEX
 ;; __gc
-;; __add-entity
-;; __remove-entity
 
 (declaim (optimize (debug 3) (safety 3) (speed 0) (space 0)))
 ;(declaim (optimize (debug 0) (safety 0) (speed 3) (space 0)))
@@ -61,24 +59,6 @@
 				    :fill-pointer 0)
 	      :type     (array cons)))
   (:documentation "Memory only index."))
-
-;;; API
-;;;
-;;;; Store
-(defmethod __close-store ((store ht-db))
-  (__drop store))
-
-(defmethod __close-store ((store ht-index))
-  (__drop store))
-
-(defmethod __drop ((store ht-db))
-  (setf store nil))
-
-(defmethod __drop ((store ht-index))
-  (setf store nil))
-
-(defmethod __gc   ((store ht-db) delete)
-  (if delete
       nil
       t))
 
@@ -106,22 +86,22 @@
 
   (dolist (wf (inverse entity))
 	  (push (cdr wf) (cdr (__indexed-p store 'word-form (car wf))))))
-
 	
-#|
-
-Not sure how to do this with loop...
-
-   '(loop for wf being the elements of (cdr entity)
-	when (__indexed-p store 'word-form (car wf))
-	
-	
-	))
-|#
-
 (defmethod __remove-entity ((store ht-db) type key)
   (remhash key (slot-value store type)))
 
+(defmethod __remove-entity ((store ht-index) type key)
+  (let ((index (slot-value store type)))
+    (if (or (eq type 'doc)
+	    (eq type 'word-form))
+	(setf index (remove key index :test #'equal :count 1))
+	(setf index (remove (car (gen-n-grams `(,key))) index :test #'equal :count 1)))
+    (when (eq type 'word-form)
+      (let ((wff (slot-value store 'wf-fuzzy)))
+	(setf wff (remove (car (gen-n-grams `(,key))) wff :test #'equal :count 1))))))
+    
+
+  
 ;;;; DB: content - general
 
 (defmethod __get-one ((db ht-db) key type)

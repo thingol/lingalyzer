@@ -65,11 +65,11 @@ are stored in a forward index, and word forms in a inverse index."
       (__add-entity *index* partial-index)
       (__add-entity *index* entity)))
 
-(defun remove-entity (key type)
+(defun remove-entity (type key)
   "Remove an entity from the store."
 
-  (and (__remove-entity *db* key type)
-       (__remove-entity *index* key type)
+  (and (__remove-entity *db* type key)
+       (__remove-entity *index* type key)
        (setf (dirty *db*) t)
        (setf (dirty *index*) t)))
 
@@ -81,10 +81,10 @@ are stored in a forward index, and word forms in a inverse index."
 
   (__get-one *db* key type))
 
-(defun get-one (key &optional (type nil))
-  "Get matching entity from the database."
-
-  (__get-one *db* key type))
+(defun get-one (key type)
+  "Get matching entity of specified type from the database."
+  
+      (__get-one *db* key type))
 
 (defun get-all ()
   "Get all entities in the entire db."
