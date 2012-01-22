@@ -1,17 +1,34 @@
 (in-package :org.kjerkreit.lingalyzer.tests)
 
-(defun feeder-test ()
-  (let* ((store (new-store "bla" 'ht-db 'ht-index t))
-	 (db (car store))
-	 (index (cdr store)))
-    ;;  (process-doc
-    ;;  "/home/marius/Dropbox/Kode/cl/lingalyzer/test-data/de-bello-gallico-01-01-latin-library.txt")
+(defparameter *db* nil)
+(defparameter *index* nil)
 
-    (process-doc
-     "/home/marius/Dropbox/Kode/cl/lingalyzer/test-data/kort")
+(defun feeder-test ()
+  (let ((store (new-store "bla" 'ht-db 'ht-index t))
+	(dir "/home/marius/Dropbox/Kode/cl/lingalyzer/test-data/")
+	(test-data '("de-bello-gallico-01-01-latin-library.txt"
+		     "de-bello-gallico-01-01-wikisource.txt"
+		     "de-bello-gallico-liber-primvs-thelatinlibrary.com.txt"
+		     "de-bello-gallico-liber-qvartvs-thelatinlibrary.com.txt"
+		     "de-bello-gallico-liber-qvintvs-thelatinlibrary.com.txt"
+		     "de-bello-gallico-liber-secundus-thelatinlibrary.com.txt"
+		     "de-bello-gallico-liber-septimvs-thelatinlibrary.com.txt"
+		     "de-bello-gallico-liber-sextvs-thelatinlibrary.com.txt"
+		     "de-bello-gallico-liber-tertius-thelatinlibrary.com.txt")))
+
+    (setf *db* (car store))
+    (setf *index* (cdr store))
+    
+    (dolist (test-datum test-data)
+      (process-doc (concatenate 'string dir test-datum)))
+
+    ;;(process-doc
+    ;; "/home/marius/Dropbox/Kode/cl/lingalyzer/test-data/kort")
   
 
-    (describe db)
-    (describe index)
-    (print (slot-value index 'doc))
-    (slot-value index 'word-form)))
+    ;;(describe db)
+    ;;(describe index)
+    ;;(print (slot-value index 'doc))
+    ;;(slot-value index 'word-form))
+
+    ))
