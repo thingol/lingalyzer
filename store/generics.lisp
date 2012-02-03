@@ -4,8 +4,6 @@
 
 (defgeneric __close-store (store))
 
-(defgeneric __drop (store))
-
 (defgeneric __gc (store rem-ent))
 
 (defgeneric __open-store (type name))

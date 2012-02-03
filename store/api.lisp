@@ -22,12 +22,6 @@
   (__close-store *db*)
   (__close-store *index*))
 
-(defun drop ()
-  "Drops the currently open store."
-  
-  (__drop *db*)
-  (__drop *index*))
-
 (defun gc (&optional (delete nil))
   "Marks orphaned entities as such, or removes them."
 

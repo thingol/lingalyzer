@@ -29,13 +29,14 @@
 			:components
 			((:file "package")
 			 (:file "generics"        :depends-on ("package"))
-			 (:file "datatypes"       :depends-on ("package"))
 			 (:file "store-internals" :depends-on ("package"))
 			 (:file "api"             :depends-on ("generics"
 							       "store-internals"))
-			 (:file "ht"              :depends-on ("generics"
-							       "datatypes")))
-			:depends-on ("package"))
+			 (:file "ht-datatypes"    :depends-on ("package"))
+			 (:file "ht-db-index"     :depends-on ("generics"
+							       "ht-datatypes"))
+			 (:file "sqlite-db"       :depends-on ("generics"))
+			:depends-on ("package")))
 	       (:module "tests"
 			:components
 			((:file "package")

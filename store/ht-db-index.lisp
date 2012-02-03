@@ -62,7 +62,7 @@
       nil
       t))
 
-(defmethod __gc   ((store ht-index) delete)
+(defmethod __gc ((store ht-index) delete)
   (if delete
       nil
       t))
