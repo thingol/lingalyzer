@@ -3,7 +3,7 @@
 (in-package #:asdf)
 
 (defsystem org.kjerkreit.lingalyzer
-  :version "0.0.4"
+  :version "0.0.5"
   :author "Marius Hårstad Kjerkreit"
   :license "BSD-style"
   :depends-on (:split-sequence
@@ -28,14 +28,14 @@
 	       (:module "store"
 			:components
 			((:file "package")
-			 (:file "generics"        :depends-on ("package"))
-			 (:file "store-internals" :depends-on ("package"))
-			 (:file "api"             :depends-on ("generics"
-							       "store-internals"))
-			 (:file "ht-datatypes"    :depends-on ("package"))
-			 (:file "ht-db-index"     :depends-on ("generics"
-							       "ht-datatypes"))
-			 (:file "sqlite-db"       :depends-on ("generics"))
+			 (:file "generics" :depends-on ("package"))
+			 (:file "store"    :depends-on ("package"))
+			 (:file "db"       :depends-on ("generics"))
+			 (:file "index"    :depends-on ("generics"))
+			 (:file "api"      :depends-on ("generics"
+							"store"
+							"db"
+							"index"))
 			:depends-on ("package")))
 	       (:module "tests"
 			:components

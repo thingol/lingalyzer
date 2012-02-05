@@ -4,8 +4,6 @@
 
 (defgeneric __close-store (store))
 
-(defgeneric __gc (store rem-ent))
-
 (defgeneric __open-store (type name))
 
 ;;;; Store: content - general
@@ -16,7 +14,7 @@
 
 ;;;; DB: content - general 
 
-(defgeneric __get-one (db key type))
+(defgeneric __get-one (db type key))
 
 (defgeneric __get-all (db))
 
@@ -25,14 +23,6 @@
 (defgeneric __update (db entity))
 
 ;;;; DB: content - specific
-
-(defgeneric __add-doc-to-mdoc (db mdhash dhash))
-
-(defgeneric __add-doc-scribe (db scribe dhash))
-
-(defgeneric __add-mdoc (db author mdhash))
-
-(defgeneric __get-childless (db))
 
 (defgeneric __increase-wf-count (db wf delta))
 

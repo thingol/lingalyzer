@@ -17,6 +17,49 @@
   `(loop for entity being the hash-values in (slot-value ,db ,type)
        collect entity))
 
+
+#|
+(defun process-doc (path)
+  "Add document and relevant meta data to document db. Returns nil if document alrady exists."
+
+  (let* ((doc       (read-file path))
+	 (metadata  (car doc))
+	 (mdoc-name (cdr (car                 metadata)))
+	 (scribe    (cdr (cadddr              metadata)))
+	 (dhash     (md5sum-strings-to-string scribe mdoc-name)))
+
+    (if (exists-p dhash 'doc)
+	nil
+	(let* ((author      (cdr (cadr                metadata)))
+	       (mdhash      (md5sum-strings-to-string author mdoc-name))
+	       (indexed-doc (index-document (cdr doc) dhash)))
+	  
+	  (unless (exists-p author 'agent)
+	    (add-entity (make-instance 'agent :name author)))
+	  
+	  (unless (exists-p mdhash 'mdoc)
+	    (add-entity (make-instance 'mdoc
+				       :name     mdoc-name
+				       :author   author
+				       :genre    (cdr (caddr metadata))
+				       :docs     (make-array 1
+							     :element-type     'md5sum
+							     :initial-contents `(,dhash)
+							     :adjustable       t
+							     :fill-pointer     1)
+				       :hash     mdhash)))
+	  
+	  (unless (exists-p scribe 'agent)
+	    (add-entity (make-instance 'agent :name scribe)))
+	  
+	  (add-entity (make-instance 'doc
+				     :mdoc      mdhash
+				     :scribe    scribe
+				     :len       (car indexed-doc)
+				     :hash      dhash)
+		      (cadr indexed-doc))))))
+|#
+
 ;;; Datatypes
 ;;;
 ;;;; DB
