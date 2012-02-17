@@ -1,34 +1,35 @@
 (in-package :org.kjerkreit.lingalyzer)
 
 (defpackage #:org.kjerkreit.lingalyzer.store
-  (:nicknames la-s :LA-S)
+  (:nicknames ling-store :LING-STORE)
   (:use #:cl
 	#:org.kjerkreit.utils
 	#:org.kjerkreit.utils.ngram)
-  (:export #:add-entity
-	   #:close-stpre
-	   #:drop
-	   #:exists-p
-	   #:find-entities
-	   #:gc
-	   #:get-all
-	   #:get-by
-	   #:get-childless
-	   #:get-one
-	   #:get-orphans
-	   #:increase-wf-count
-	   #:indexed-p
-	   #:new-store
+  (:export ;; Store
+   
+           #:close-store
+	   #:create-store
+	   #:delete-store
 	   #:open-store
-	   #:remove-entity
-	   #:update
-	   ;;
-	   #:ht-db
-	   #:ht-index
-	   ;;
-	   #:agent
-	   #:doc
-	   #:doc-index
-	   #:mdoc
-	   #:word-form))
+
+	   ;; DB - general
+
+	   #:add-rec
+	   #:exists-p	   
+   	   #:get-rec-all
+	   #:get-rec-by
+	   #:get-rec-one
+	   #:remove-rec
+	   #:update-rec
+
+	   ;; DB - specific
+	   
+	   #:update-wf-count	   
+
+	   ;; Index
+	   #:find-ents
+	   #:indexed-p))
+
+
+	   
 

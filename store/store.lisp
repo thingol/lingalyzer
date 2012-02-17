@@ -1,35 +1,47 @@
 (in-package :org.kjerkreit.lingalyzer.store)
 
-(defclass store ()
-  ((name    :initarg    name)
-   (version :reader     version
-	    :initform   1
-	    :type       fixnum
-	    :allocation :class)
-   (dirty   :initform   nil
-	    :type       symbol)
-   (db      :type       sqlite-handle)
-   (index   :type       index))
-  (:documentation "Lingalyzer store. Uses SQLite as the metadata database, and flat files with sexps
-  as the index."))
+(defparameter *store-name* nil)
 
-(defclass index ()
-  ((forward :type          forward-index)
-   (inverse :type          inverse-index)
-   (mapping :type          cons
-	    :documentation "Bi-gram to word-form map.")
-  (:documentation "Lingalyzer index."))
+(defun create-store (store-name)
+  "Creates a new store. Returns t if succsessful and nil if not."
+      
+  (and
+   (not (probe-file store-name))
+   (ensure-directories-exist
+    (merge-pathnames store-name "/forward-index/")
+    :mode 755)
+   (ensure-directories-exist
+    (merge-pathnames store-name "/inverse-index/")
+    :mode 755)
+   (init-db store-name)
+   (setf *store-name* store-name)))
 
-(defun forward-index-p (obj)
-  (and (typep (car obj) 'md5sum)
-       (typep (cdr obj) 'cons)))
+(defun close-store ()
+  "Closes the currently open store."
 
-(deftype forward-index ()
-  `(satisfies forward-index-p))
+  (cond ((not *store-name*)
+	 'no-open-store)
+	(t
+	 (setf *store-name* nil)
+	 t)))
 
-(defun inverse-index-p (obj)
-  (and (typep (caadar obj) 'md5sum)
-       (typep (car (cdadar obj)) 'array)))
+(defun delete-store (&optional (store-name *store-name*))
+  "Deletes the named store, or the currently open store if called without arguments."
 
-(deftype inverse-index ()
-  `(satisfies inverse-index-p))
+  (cond ((not store-name)
+	 'no-store-to-delete)
+	((file-exists-p
+	  (merge-pathnames store-name "/db.sqlite"))
+	 (delete-directory-and-files store-name) ;; no return value
+	 t)
+	(t 'not-a-store)))
+
+(defun open-store (store-name)
+  "Open a store. Close the currently open store (if one exists)."
+
+  (if (file-exists-p (merge-pathnames store-name "/db.sqlite"))
+      (progn
+	(when *store-name*
+	  (close-store))
+	(setf *store-name* store-name))
+      'not-a-store))

@@ -7,6 +7,7 @@
   :author "Marius Hårstad Kjerkreit"
   :license "BSD-style"
   :depends-on (:split-sequence
+	       :cl-fad
 	       :org.kjerkreit.utils
 	       :org.kjerkreit.utils.ngram)
   :components ((:static-file "LICENSE")
@@ -28,19 +29,14 @@
 	       (:module "store"
 			:components
 			((:file "package")
-			 (:file "generics" :depends-on ("package"))
 			 (:file "store"    :depends-on ("package"))
-			 (:file "db"       :depends-on ("generics"))
-			 (:file "index"    :depends-on ("generics"))
-			 (:file "api"      :depends-on ("generics"
-							"store"
-							"db"
-							"index"))
-			:depends-on ("package")))
+			 (:file "db"       :depends-on ("package"))
+			 (:file "index"    :depends-on ("package")))
+			:depends-on ("package"))
 	       (:module "tests"
 			:components
 			((:file "package")
-			 (:file "feeding"    :depends-on ("package")))
+			 (:file "feeding"  :depends-on ("package")))
 			:depends-on ("package"
 				     "store"
 				     "feeder"
