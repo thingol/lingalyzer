@@ -17,19 +17,19 @@ decoded by methods add-entity and update-entity.
 	 (metadata  (car doc))
 	 (mdoc-name (cdr (car                 metadata)))
 	 (scribe    (cdr (cadddr              metadata)))
-	 (dhash     (md5sum-strings-to-string scribe mdoc-name)))
+	 (dhash     (ku:md5sum-strings scribe mdoc-name)))
 
     (if (exists-p 'doc dhash)
 	nil
-	(let* ((author      (cdr (cadr                metadata)))
-	       (mdhash      (md5sum-strings-to-string author mdoc-name)))
+	(let* ((author      (cdr (cadr metadata)))
+	       (mdhash      (ku:md5sum-strings author mdoc-name)))
 	  
 	  (unless (exists-p 'agent author)
 	    (add-entity (list 'agent :name author)))
 	  
 	  (unless (exists-p 'mdoc mdhash)
-	    (add-entity (list 'mdoc :name mdoc-name :author author :genre (cdr (caddr metadata)
-	    :mdhash mdhash))))
+	    (add-entity (list 'mdoc :name mdoc-name :author author :genre (cdr (caddr metadata))
+	    :mdhash mdhash)))
 	  
 	  (unless (exists-p scribe 'agent)
 	    (add-entity (list 'agent :name scribe)))
