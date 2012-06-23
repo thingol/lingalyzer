@@ -1,66 +1,70 @@
-(in-package :org.kjerkreit.lingalyzer.store)
+;(in-package :org.kjerkreit.lingalyzer.store)
 
 (declaim (optimize (debug 3) (safety 3) (speed 0) (space 0)))
 ;(declaim (optimize (debug 0) (safety 0) (speed 3) (space 0)))
 
+(defvar *db-path* nil)
 
 ;;;; DB init
 
 (defun init-db (store-name)
   "Create the database and apply the schema."
 
+  (setf *db-path* (concatenate 'string store-name "/db.sqlite"))
+
+  
   ;; Create and open db file
-  (with-open-database (db (merge-pathnames store-name "/db.sqlite"))
+  (with-open-database (db *db-path*)
       
     ;; Apply schema
     (execute-non-query
      db
      "CREATE TABLE agent
-      (id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-      name TEXT NOT NULL)")
+      (name TEXT PRIMARY KEY)")
 
     (execute-non-query
      db
      "CREATE TABLE doc
-      (id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-      mdoc INTEGER NOT NULL,
-      scribe INTEGER NOT NULL,
-      len INTEGER NOT NULL,
-      FOREIGN KEY(mdoc,scribe) REFERENCES mdoc(id) agent(id))
-                               ON DELETE CASCADE
-                               ON UPDATE CASCADE")
+      (dhash TEXT PRIMARY KEY,
+       mdoc TEXT REFERENCES mdoc(name) ON DELETE CASCADE,
+       scribe TEXT REFERENCES agent(name) ON DELETE CASCADE,
+       len INTEGER)")
 
     (execute-non-query
      db
      "CREATE TABLE mdoc
-      (id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-      name TEXT NOT NULL,
-      author INTEGER NOT NULL,
-      genre TEXT,
-      FOREIGN KEY(author) REFERENCES agent(id))
-                          ON DELETE CASCADE
-                          ON UPDATE CASCADE)")
+      (name TEXT PRIMARY KEY,
+       author TEXT REFERENCES agent(name) ON DELETE CASCADE),
+       genre TEXT")
 
     (execute-non-query
      db
      "CREATE TABLE word_form
-      (id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
-      form TEXT NOT NULL,
-      count INTEGER NOT NULL)")))
+      (form TEXT PRIMARY KEY,
+       count INTEGER)")))
 
 ;;;; Auxilliary functions
 
-(defun decode-record-spec (record-spec)
+(defun decode-record-spec (record-spec &optional (update nil))
   "Converts the record spec into a list of arguments for the query builder."
-  
-  (let* ((table (symbol-name (pop record-spec)))
-	 (columns (symbol-name (pop record-spec)))
-	 (values (pop record-spec)))
-    (do ((args record-spec))
-	((not args))
-      (setf columns (concatenate 'string columns "," (symbol-name (pop args))))
-      (setf values (concatenate 'string values "," (pop args))))
-    (values table columns values)))
+  (declare (dynamic-extent record-spec))
+
+  (let ((table (symbol-name (pop record-spec))))
+    (if update
+	(let* ((columns (list (symbol-name (pop record-spec))))
+	       (values (list (pop record-spec))))
+	  (do ((args record-spec))
+	      ((not args))
+	    (setf columns (append (list (symbol-name (pop args))) columns))
+	    (setf values (append (list (pop args)) values)))
+	  (values table columns values))
+	(let* ((columns (symbol-name (pop record-spec)))
+	       (values (pop record-spec)))
+	  (do ((args record-spec))
+	      ((not args))
+	    (setf columns (concatenate 'string columns "," (symbol-name (pop args))))
+	    (setf values (concatenate 'string values "','" (pop args))))
+	  (values table columns values)))))
 
 (defun make-delete-query (record-spec)
   "Uses a decoded record to build a delete query."
@@ -77,7 +81,7 @@
     (concatenate 'string
 		 "INSERT INTO " table
 		 " (" columns  ")"
-		 " values (" values ")")))
+		 " values ('" values "')")))
 
 (defun make-select-query (record-spec)
   "Uses a decoded record to build a select query."
@@ -85,24 +89,25 @@
   (multiple-value-bind (table columns values) (decode-record-spec record-spec)
     (concatenate 'string
 		 "SELECT * FROM " table
-		 " WHERE " columns  "=" values)))
+		 " WHERE " columns  "='" values "'")))
 
 (defun make-update-query (record-spec)
   "Uses a decoded record to build an update query."
 
-  (multiple-value-bind (table columns values) (decode-record-spec record-spec)
+  (multiple-value-bind (table columns values) (decode-record-spec record-spec t)
     (concatenate 'string
 		 "UPDATE " table
 		 " SET " (first columns) " = " (first values)
-		 " WHERE " (second columns) " = " (second values))))
+		 " WHERE " (second columns) " = '" (second values) "'")))
 
-(defmacro db-enq (&body)
+(defmacro db-enq (&body body)
   `(with-open-database (db *db-path*)
-    (execute-non-query
-     db
-     ,@body)))
+     (execute-non-query db "PRAGMA foreign_keys=1")
+     (execute-non-query
+      db
+      ,@body)))
 
-(defmacro db-etl (&body)
+(defmacro db-etl (&body body)
   `(with-open-database (db *db-path*)
     (execute-to-list
      db
@@ -112,6 +117,8 @@
 ;;;; DB: content - general
 
 (defun add-rec (record-spec)
+  "Adds a record to the db."
+  
   (db-enq (make-insert-query record-spec)))
 
 (defun delete-rec (record-spec)
@@ -119,10 +126,10 @@
   
   (db-enq (make-delete-query record-spec)))
 
-(defun exists-p (type key)
-  "Synonym for (get-one ...)"
+(defmacro exists-p (record-spec)
+  "Synonym for (get-rec-one ...)"
 
-  (get-one type key))  
+  `(get-rec-one ,record-spec))
 
 (defun get-rec-all ()
   "Retrieves everything we have."
@@ -140,14 +147,14 @@
 
 (defun get-rec-one (record-spec)
   "Retrieves one row from the db and returns it as a list."
+  (declare (inline get-rec-by))
  
-  (car (get-by record-spec)))
+  (car (get-rec-by record-spec)))
 
-(defun update-ent (record-spec)
+(defun update-rec (record-spec)
   "Updates a record, but only one attribute at a time."
   
   (db-enq (make-update-query record-spec)))
-
 
 ;;;; DB: content - specific
 
@@ -156,5 +163,5 @@
   
   (db-enq (make-update-query
 	   (list :word_form
-		 :count (concatenate 'string "count+" (write-to-string delta))
-		 :key form))))
+		 :form form
+		 :count (concatenate 'string "count+" (write-to-string delta))))))
