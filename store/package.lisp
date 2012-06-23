@@ -13,23 +13,28 @@
 	   #:open-store
 
 	   ;; DB - general
-
 	   #:add-rec
+	   #:delete-rec
 	   #:exists-p	   
-   	   #:get-rec-all
+	   #:get-rec-all
 	   #:get-rec-by
 	   #:get-rec-one
-	   #:remove-rec
 	   #:update-rec
 
 	   ;; DB - specific
-	   
 	   #:update-wf-count	   
 
 	   ;; Index
-	   #:find-ents
-	   #:indexed-p))
-
-
+	   #:find-rec
+	   #:indexed-p
+	   #:load-index
+	   #:merge-inverse
+	   #:save-index
 	   
-
+	   #:load-forward
+	   #:load-inverse
+	   #:load-fuzzy
+	   
+	   #:save-forward
+	   #:save-inverse
+	   #:save-fuzzy))
