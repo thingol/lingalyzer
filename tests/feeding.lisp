@@ -4,7 +4,7 @@
 (defparameter *index* nil)
 
 (defun feeder-test ()
-  (let ((store (new-store "bla" 'ht-db 'ht-index t))
+  (let ((store (create-store "bla"))
 	(dir "/home/marius/Dropbox/Kode/cl/lingalyzer/test-data/")
 	(test-data '("de-bello-gallico-01-01-latin-library.txt"
 		     "de-bello-gallico-01-01-wikisource.txt"
