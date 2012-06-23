@@ -1,0 +1,17 @@
+;;; <store>/
+;;;     |_dq.sqlite
+;;;     |_docs/
+;;;     .   |_<dhash0>
+;;;     .   |_<dhash1>
+;;;     |_index/
+;;;         |_forward/
+;;;         .   |_<dhash0>
+;;;         .   |_<dhash1>
+;;;         |_fuzzy/
+;;;         .   |_agent
+;;;         .   |_mdoc
+;;;         .   |_word-form
+;;;         .   .
+;;;         .   .
+;;;         .   |_...
+;;;         |_inverse
