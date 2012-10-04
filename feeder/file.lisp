@@ -7,26 +7,24 @@
   (let ((file  (probe-file path))
 	(mdata (probe-file (concatenate 'string path ".meta"))))
 
-    (unless ignore-missing
-      
-      (unless file
-	(error "No such file: ~S" path))
-  
-      (unless mdata
-	(error "No metadata associated with file: ~S" path)))
+    (if (not ignore-missing)
+        (when (not file)
+          (error "No such file: ~S" path))
+        (when (not mdata)
+          (error "No metadata associated with file: ~S" path)))
 
-    (if (and ignore-missing (or (not file) (not mdata)))
+    (if (and ignore-missing
+             (or (not file)
+                 (not mdata)))
 	nil
-	(let ((data))
-	  (with-open-file (s path)
-	    (setf data (make-string (file-length s)))
-	    (read-sequence data s))
-	  (with-open-file (s (concatenate 'string path ".meta"))
-	     
-	    (cons (read s) data))))))
+        (with-open-file (f path)
+	  (with-open-file (meta (concatenate 'string path ".meta"))
+            (let ((data (make-string (file-length f))))
+              (read-sequence data f)	     
+              (cons (read meta) data)))))))
 
 (defun read-files (files &optional (ignore-missing nil))
-  "Calls (read-file ...) on each file."
+  "Calls read-file() on each file in files."
 
-  (type-of files)
-  ignore-missing)
+  (loop for file in files
+       collect (read-file file ignore-missing)))
