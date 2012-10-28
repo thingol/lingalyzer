@@ -1,0 +1,80 @@
+analysis:
+
+client:
+
+feeder:
+
+indexer:
+
+preprocessing:
+  - doc-proc: DONE
+  - filter: DONE
+
+store:
+  - check-store():
+    * find possible states
+    * IMPLEMENT
+    
+  - create-store(): DONE
+
+  - close-store():
+    * merge index
+    * save index if changed
+   
+  - delete-store()
+    * store-integrity-error: IMPLEMENT
+   
+  - open-store()
+    * store-integrity-error: IMPLEMENT
+
+  - db:
+    * init
+      = DONE
+      = use indexing of agent and mdoc names?
+    * auxiliary functions:
+      = db-enq() macro: DONE
+      = db-etl() macro: done
+      = decode-record-spec(): DONE
+      = make-delete-query(): DONE
+      = make-insert-query(): DONE
+      = make-select-query(): DONE
+    * content - general:
+      = add-rec(): DONE
+      = delete-rec(): DONE
+      = exists-p() macro: DONE
+        ~ use def-falias() from org.kjerkreit.utils instead?
+      = get-rec-all(): DONE
+      = get-reb-by(): DONE
+      = get-rec-one():
+        ~ signal error if more than one record matches
+      = update-rec():
+        ~ signal error if record spec contains more than two colum names
+    * content - specific:
+      = get-authored(): IMPLEMENT
+      = get-transcribed(): IMPLEMENT
+      = get-wf-count(): IMPLEMENT
+      = update-wf-count: DONE
+        ~ check for existence of wf, signal error if not found?
+
+  - index:
+    * mechanism to detect existence of index: IMPLEMENT
+    * support:
+      = load-index-from-file() macro: DONE (but is it useful?, also misnomer)
+      = save-index-to-file() macro: DITTO
+      = process-hash-table() macro: DONE
+    * high-level functions:
+      = load-index(): plenty of work left
+      = save-index(): DITTO
+    * low-level functions:
+      = misc:
+        - merge-inverse(): plenty of work left
+      = loading:
+        - load-forward(): DONE
+        - load-fuzzy(): DONE
+        - load-inverse(): DONE
+      = saving:
+        - save-forward(): DONE
+        - save-fuzzy(): DONE
+        - save-inverse(): DONE
+test:
+  - plenty of work left :)
