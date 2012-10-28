@@ -20,18 +20,26 @@ decoded by methods add-entity and update-entity.
 	 (dhash     (ku:md5sum-strings scribe mdoc-name)))
 
     (if (exists-p 'doc dhash)
-	nil
+	nil ;; signal that the document already exists?
 	(let* ((author      (cdr (cadr metadata)))
 	       (mdhash      (ku:md5sum-strings author mdoc-name)))
 	  
-	  (unless (exists-p 'agent author)
-	    (add-entity (list 'agent :name author)))
+	  (if (not (exists-p 'agent author))
+              (add-rec (list 'agent
+                                :name author)))
 	  
-	  (unless (exists-p 'mdoc mdhash)
-	    (add-entity (list 'mdoc :name mdoc-name :author author :genre (cdr (caddr metadata))
-	    :mdhash mdhash)))
+	  (if (not (exists-p 'mdoc mdhash))
+              (add-rec (list 'mdoc
+                                :name mdoc-name
+                                :author author
+                                :genre (cdr (caddr metadata))
+                                :mdhash mdhash)))
 	  
-	  (unless (exists-p scribe 'agent)
-	    (add-entity (list 'agent :name scribe)))
+	  (if (not (exists-p scribe 'agent))
+              (add-rec (list 'agent
+                                :name scribe)))
 	  
-	  (add-entity (list 'doc :mdhash mdhash :scribe scribe :dhash dhash))))))
+	  (add-rec (list 'doc
+                            :mdhash mdhash
+                            :scribe scribe
+                            :dhash dhash))))))
