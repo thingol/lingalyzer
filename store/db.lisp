@@ -101,6 +101,8 @@
 		 " WHERE " (second columns) " = '" (second values) "'")))
 
 (defmacro db-enq (&body body)
+  "Executes query without returning data. Used for DELETE, INSERT, UPDATE etc."
+  
   `(with-open-database (db *db-path*)
      (execute-non-query db "PRAGMA foreign_keys=1")
      (execute-non-query
@@ -108,6 +110,8 @@
       ,@body)))
 
 (defmacro db-etl (&body body)
+  "Executes query and returns data as list."
+  
   `(with-open-database (db *db-path*)
     (execute-to-list
      db

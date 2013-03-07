@@ -11,6 +11,8 @@ preprocessing:
   - filter: DONE
 
 store:
+  - store-integrity-error(error)
+
   - check-store():
     * find possible states
     * IMPLEMENT
@@ -22,10 +24,10 @@ store:
     * save index if changed
    
   - delete-store()
-    * store-integrity-error: IMPLEMENT
+    * use handler and store-integrity-error: IMPLEMENT
    
   - open-store()
-    * store-integrity-error: IMPLEMENT
+    * use handler and store-integrity-error: IMPLEMENT
 
   - db:
     * init
@@ -48,7 +50,7 @@ store:
       = get-rec-one():
         ~ signal error if more than one record matches
       = update-rec():
-        ~ signal error if record spec contains more than two colum names
+        ~ signal error if record spec contains more than one column to match against
     * content - specific:
       = get-authored(): IMPLEMENT
       = get-transcribed(): IMPLEMENT
@@ -57,6 +59,8 @@ store:
         ~ check for existence of wf, signal error if not found?
 
   - index:
+    * index-intgerity-error(store-integrity-error)
+    * define index format
     * mechanism to detect existence of index: IMPLEMENT
     * support:
       = load-index-from-file() macro: DONE (but is it useful?, also misnomer)
