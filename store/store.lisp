@@ -12,10 +12,9 @@
   ((store-name :initarg :store-name :reader store-name)
    (store-component :initarg :store-component :reader store-component))
   (:report (lambda (condition stream)
-               (format stream "~A fails integrity test: ~A is missing."
+               (format stream "~A fails integrity test: ~A."
                        (store-name condition)
                        (store-component condition)))))
-
 
 (defun check-store (&optional (store-root +store-root+)
                     (store-name *store-name*)

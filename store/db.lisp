@@ -5,6 +5,12 @@
 
 (defvar *db-path* nil)
 
+(define-condition db-integrity-error (error)
+  ((store-name :initarg :store-name :reader store-name))
+  (:report (lambda (condition stream)
+               (format stream "Meta data db for store ~A fails integrity test."
+                       (store-name condition)))))
+
 ;;;; DB init
 
 (defun init-db (store-name)

@@ -16,6 +16,14 @@
 ;; for things we have indexed during the current session
 (defvar *temp-index* (make-array '(100) :element-type t :adjustable t :fill-pointer t))
 
+(define-condition index-integrity-error (error)
+  ((store-name :initarg :store-name :reader store-name)
+   (index-component :initarg :store-component :reader index-component))
+  (:report (lambda (condition stream)
+               (format stream "Index of store ~A fails integrity test: ~A."
+                       (store-name condition)
+                       (index-component condition)))))
+
 ;;; support
 (defmacro load-index-from-file (path &body body)
   `(with-open-file (file ,path
