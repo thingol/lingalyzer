@@ -7,78 +7,81 @@ feeder:
 indexer:
 
 preprocessing:
-  - doc-proc: DONE
-  - filter: DONE
+  - FUNCTION:doc-proc(): DONE
+  - FUNCTION:filter(): DONE
 
 store:
-  - store-integrity-error(error)
+  - CONDOTION:store-integrity-error(error)
 
-  - check-store():
+  - FUNCTION:check-store():
     * find possible states
     * IMPLEMENT
     
-  - create-store(): DONE
+  - FUNCTION:create-store(): DONE
 
-  - close-store():
-    * merge index
-    * save index if changed
+  - FUNCTION:close-store():
+    * FUNCTION:merge-index()
+    * FUNCTION:save-index() - if changed
    
-  - delete-store()
+  - FUNCTION:delete-store()
     * use handler and store-integrity-error: IMPLEMENT
+    * allow forcing deletion of store with compromised integrity (keyword arg)
    
-  - open-store()
+  - FUNCTION:open-store()
     * use handler and store-integrity-error: IMPLEMENT
+      = handler triggers reindexing should index be missing or in an invalid state
 
   - db:
-    * init
+    * CONDOTION:db-integrity-error (also triggered by sqlite)
+    * FUNCTION:init
       = DONE
       = use indexing of agent and mdoc names?
     * auxiliary functions:
-      = db-enq() macro: DONE
-      = db-etl() macro: done
-      = decode-record-spec(): DONE
-      = make-delete-query(): DONE
-      = make-insert-query(): DONE
-      = make-select-query(): DONE
+      = MACRO:db-enq(): DONE
+      = MACRO:db-etl(): DONE
+      = FUNCTION:decode-record-spec(): DONE
+      = FUNCTION:make-delete-query(): DONE
+      = FUNCTION:make-insert-query(): DONE
+      = FUNCTION:make-select-query(): DONE
     * content - general:
-      = add-rec(): DONE
-      = delete-rec(): DONE
-      = exists-p() macro: DONE
+      = FUNCTION:add-rec(): DONE
+      = FUNCTION:delete-rec(): DONE
+      = MACRO:exists-p(): DONE
         ~ use def-falias() from org.kjerkreit.utils instead?
-      = get-rec-all(): DONE
-      = get-reb-by(): DONE
-      = get-rec-one():
+      = FUNCTION:get-rec-all(): DONE
+      = FUNCTION:get-reb-by(): DONE
+      = FUNCTION:get-rec-one(): IMPLEMENT
         ~ signal error if more than one record matches
-      = update-rec():
+      = FUNCTION:update-rec(): IMPLEMENT
         ~ signal error if record spec contains more than one column to match against
     * content - specific:
-      = get-authored(): IMPLEMENT
-      = get-transcribed(): IMPLEMENT
-      = get-wf-count(): IMPLEMENT
-      = update-wf-count: DONE
+      = FUNCTION:get-authored(): IMPLEMENT
+      = FUNCTION:get-transcribed(): IMPLEMENT
+      = FUNCTION:get-wf-count(): IMPLEMENT
+      = FUNCTION:update-wf-count: DONE
         ~ check for existence of wf, signal error if not found?
 
   - index:
-    * index-intgerity-error(store-integrity-error)
-    * define index format
-    * mechanism to detect existence of index: IMPLEMENT
+    * CONDITION:index-intgerity-error(store-integrity-error): IMPLEMENT
+    * chose index format
+    * FUNCTION:mechanism to detect existence of index: IMPLEMENT
     * support:
-      = load-index-from-file() macro: DONE (but is it useful?, also misnomer)
-      = save-index-to-file() macro: DITTO
-      = process-hash-table() macro: DONE
+      = MACRO:load-index-from-file(): DONE (but is it useful?, also misnomer)
+      = MACRO:save-index-to-file(): DITTO
+      = MACRO:process-hash-table(): DONE
     * high-level functions:
-      = load-index(): plenty of work left
-      = save-index(): DITTO
+      = FUNCTION:load-index(): plenty of work left
+      = FUNCTION:save-index(): DITTO
     * low-level functions:
       = misc:
-        - merge-inverse(): plenty of work left
+        - FUNCTION:merge-inverse(): plenty of work left
       = loading:
-        - load-forward(): DONE
-        - load-fuzzy(): DONE
-        - load-inverse(): DONE
+        - FUNCTION:load-forward(): DONE
+        - FUNCTION:load-fuzzy(): DONE
+        - FUNCTION:load-inverse(): DONE
       = saving:
-        - save-forward(): DONE
-        - save-fuzzy(): DONE
-        - save-inverse(): DONE
+        - FUNCTION:save-forward(): DONE
+        - FUNCTION:save-fuzzy(): DONE
+        - FUNCTION:save-inverse(): DONE
 test:
   - plenty of work left :)
