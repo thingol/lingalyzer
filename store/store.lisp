@@ -73,5 +73,6 @@ i.e. it has been checked somewhere else"
   (cond ((file-exists-p (merge-pathnames store-name "/db.sqlite"))
          (if *store-name*
 	    (close-store))
-	(setf *store-name* store-name))
-      'not-a-store))
+         (check-store)
+         (setf *store-name* store-name))
+        'not-a-store))

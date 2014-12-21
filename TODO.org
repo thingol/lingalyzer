@@ -1,0 +1,86 @@
+# -*- encoding: utf-8 -*-
+#+FILETAGS: :KODE:
+#+STARTUP: showall hideblocks
+
+* lingalyzer
+** TODO analysis
+
+** TODO client
+
+** TODO feeder
+
+** TODO indexer
+
+** TODO preprocessing
+*** DONE FUNCTION:doc-proc()
+*** DONE FUNCTION:filter():
+
+** TODO store
+**** TODO CONDOTION:store-integrity-error(error)
+**** TODO FUNCTION:check-store()
+***** TODO find possible states
+**** DONE FUNCTION:create-store()
+**** TODO FUNCTION:close-store()
+***** TODO FUNCTION:merge-index()
+***** TODO FUNCTION:save-index() - if changed
+**** TODO FUNCTION:delete-store()
+***** TODO use handler and store-integrity-error
+***** TODO allow forcing deletion of store with compromised integrity (keyword arg)
+**** TODO FUNCTION:open-store()
+***** TODO use handler and store-integrity-error
+****** TODO handler triggers reindexing should index be missing or in an invalid state
+
+*** TODO db:
+**** TODO CONDOTION:db-integrity-error (also triggered by sqlite)
+**** TODO FUNCTION:init
+***** TODO use indexing of agent and mdoc names?
+**** TODO auxiliary functions:
+***** DONE MACRO:db-enq()
+***** DONE MACRO:db-etl()
+***** DONE FUNCTION:decode-record-spec()
+***** DONE FUNCTION:make-delete-query()
+***** DONE FUNCTION:make-insert-query()
+***** DONE FUNCTION:make-select-query()
+**** TODO content - general:
+***** DONE FUNCTION:add-rec()
+***** DONE FUNCTION:delete-rec()
+***** TODO MACRO:exists-p()
+****** TODO use def-falias() from org.kjerkreit.utils instead?
+***** DONE FUNCTION:get-rec-all()
+***** DONE FUNCTION:get-reb-by()
+***** TODO FUNCTION:get-rec-one()
+****** TODO signal error if more than one record matches
+***** TODO FUNCTION:update-rec()
+****** TODO signal error if record spec contains more than one column to match against
+**** TODO content - specific:
+***** TODO FUNCTION:get-authored()
+***** TODO FUNCTION:get-transcribed()
+***** TODO FUNCTION:get-wf-count()
+***** TODO FUNCTION:update-wf-count
+****** TODO check for existence of wf, signal error if not found?
+
+*** TODO index:
+**** TODO CONDITION:index-intgerity-error(store-integrity-error)
+**** TODO chose index format
+**** TODO FUNCTION:mechanism to detect existence of index
+**** TODO support:
+***** DONE MACRO:load-index-from-file() (but is it useful?, also misnomer)
+***** DONE MACRO:save-index-to-file()
+***** DONE MACRO:process-hash-table()
+**** TODO high-level functions:
+***** TODO FUNCTION:load-index()
+***** TODO FUNCTION:save-index()
+**** TODO low-level functions:
+***** TODO misc:
+****** TODO FUNCTION:merge-inverse(): plenty of work left
+***** TODO loading:
+****** DONE FUNCTION:load-forward()
+****** DONE FUNCTION:load-fuzzy()
+****** DONE FUNCTION:load-inverse()
+***** TODO saving:
+****** DONE FUNCTION:save-forward()
+****** DONE FUNCTION:save-fuzzy()
+****** DONE FUNCTION:save-inverse()
+
+** TODO test
+*** TODO plenty of work left :)
